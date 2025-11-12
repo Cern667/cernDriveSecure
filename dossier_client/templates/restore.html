@@ -4,26 +4,45 @@
     <meta charset="UTF-8">
     <title>Restaurer un Fichier</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 700px; margin: 3em auto; background-color: #f0f2f5; }
-        .container { background-color: #ffffff; padding: 2em; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.08); }
-        h1 { color: #1c1e21; }
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 2em auto; background-color: #f4f4f4; }
+        .container { background-color: white; padding: 2em; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        p { color: #555; }
         ul { list-style-type: none; padding: 0; }
         li { background-color: #f7f7f7; padding: 1em; border-radius: 5px; margin-bottom: 0.5em; display: flex; justify-content: space-between; align-items: center; }
-        a.download-link { background-color: #28a745; color: white; padding: 0.5em 1em; text-decoration: none; border-radius: 4px; }
-        a.download-link:hover { background-color: #218838; }
-        a.nav-link { display: inline-block; margin-top: 1.5em; }
+        a.download-link { background-color: #007BFF; color: white; padding: 0.5em 1em; text-decoration: none; border-radius: 4px; transition: background-color 0.2s; }
+        a.download-link:hover { background-color: #0056b3; }
+        a.nav-link { display: inline-block; margin-top: 1.5em; color: #007BFF; }
+
+        /* Style pour la vue Administrateur */
+        .admin-view {
+            background-color: #fff8e1; /* Un fond jaune pâle pour se démarquer */
+            border-left: 4px solid #ffc107;
+        }
+        .admin-notice {
+            background-color: #e7f3fe;
+            border-left: 4px solid #2196F3;
+            padding: 1em;
+            margin-bottom: 1.5em;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Fichiers Disponibles sur le Serveur</h1>
+        <h1>Fichiers sauvegardés pour {{ username }}</h1>
+
+        {% if is_admin %}
+            <p class="admin-notice"><strong>Vue Administrateur :</strong> Vous voyez les fichiers de tous les utilisateurs. Les fichiers des autres utilisateurs sont surlignés.</p>
+        {% endif %}
 
         {% if files %}
             <ul>
                 {% for file in files %}
-                    <li>
+                    {# Ajoute la classe 'admin-view' si c'est l'admin et que le chemin contient un / (ex: 'user/fichier.txt') #}
+                    <li class="{{ 'admin-view' if is_admin and '/' in file else '' }}">
                         <span>{{ file }}</span>
-                        <a href="{{ url_for('download_file', filename=file) }}" class="download-link">Télécharger</a>
+                        {# Le lien de téléchargement utilise 'filepath' comme défini dans la route Python #}
+                        <a href="{{ url_for('download_file', filepath=file) }}" class="download-link">Télécharger</a>
                     </li>
                 {% endfor %}
             </ul>

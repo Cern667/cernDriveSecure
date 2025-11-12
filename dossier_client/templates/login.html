@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Connexion en cours...</title>
+</head>
+<body>
+    <p>Authentification en cours...</p>
+
+    <!-- AVERTISSEMENT : Ce n'est PAS une bonne pratique de sécurité ou d'expérience utilisateur. -->
+    <script>
+        // Demande le nom d'utilisateur
+        const username = prompt("Veuillez entrer votre nom d'utilisateur:", "");
+        // Demande le mot de passe
+        const password = prompt("Veuillez entrer votre mot de passe:", "");
+
+        // Si l'utilisateur clique sur "Annuler" sur l'une des boîtes, on ne fait rien
+        if (username !== null && password !== null) {
+            // Crée un formulaire invisible
+            const form = document.createElement('form');
+            form.method = 'post';
+            form.action = '/login'; // Le formulaire sera envoyé à la même route /login
+
+            // Crée un champ invisible pour le nom d'utilisateur
+            const hiddenUser = document.createElement('input');
+            hiddenUser.type = 'hidden';
+            hiddenUser.name = 'username';
+            hiddenUser.value = username;
+            form.appendChild(hiddenUser);
+
+            // Crée un champ invisible pour le mot de passe
+            const hiddenPass = document.createElement('input');
+            hiddenPass.type = 'hidden';
+            hiddenPass.name = 'password';
+            hiddenPass.value = password;
+            form.appendChild(hiddenPass);
+
+            // Ajoute le formulaire à la page et le soumet automatiquement
+            document.body.appendChild(form);
+            form.submit();
+        } else {
+            // Si l'utilisateur a annulé, on peut afficher un message
+            document.body.innerHTML = "<h1>Connexion annulée.</h1>";
+        }
+    </script>
+</body>
+</html>
