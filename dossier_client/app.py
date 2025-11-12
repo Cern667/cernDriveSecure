@@ -6,7 +6,7 @@ import os
 import struct
 from flask_ldap3_login import LDAP3LoginManager
 
-from ..crypto_utils import chiffrer_fichier, dechiffrer_fichier
+from crypto_utils import chiffrer_fichier, dechiffrer_fichier
 
 load_dotenv()
 app = Flask(__name__)
