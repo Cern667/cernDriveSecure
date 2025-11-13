@@ -8,70 +8,109 @@ from flask_ldap3_login import LDAP3LoginManager
 
 from crypto_utils import chiffrer_fichier, dechiffrer_fichier
 
+# Charger les variables d'environnement
 load_dotenv()
+
 app = Flask(__name__)
-app.config.from_prefixed_env('FLASK')  # Charge les variables d'env préfixées par FLASK_
-app.config['ADMIN_USERNAME'] = os.getenv('ADMIN_USERNAME')
-STORAGE_SERVER_IP = '127.0.0.1'
-STORAGE_SERVER_PORT = 65432
+
+# =============================
+# 🔧 CONFIGURATION FLASK & LDAP
+# =============================
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecretkey")
+
+# Configuration LDAP dynamique par variable d'environnement
+app.config['LDAP_HOST'] = os.environ.get('FLASK_LDAP_HOST', 'ldap://ldap:389')
+app.config['LDAP_BASE_DN'] = os.environ.get('FLASK_LDAP_BASE_DN', 'dc=mondomaine,dc=com')
+app.config['LDAP_USER_DN'] = os.environ.get('FLASK_LDAP_USER_DN', 'ou=users')
+app.config['LDAP_USER_RDN_ATTR'] = os.environ.get('FLASK_LDAP_USER_RDN_ATTR', 'uid')
+app.config['LDAP_USER_SEARCH_FILTER'] = os.environ.get('FLASK_LDAP_USER_SEARCH_FILTER', '(uid={username})')
+app.config['LDAP_BIND_USER_DN'] = os.environ.get('FLASK_LDAP_BIND_USER_DN', 'cn=admin,dc=mondomaine,dc=com')
+app.config['LDAP_BIND_USER_PASSWORD'] = os.environ.get('FLASK_LDAP_BIND_USER_PASSWORD', 'admin')
+app.config['LDAP_USE_SSL'] = os.environ.get('FLASK_LDAP_USE_SSL', 'False').lower() in ('true', '1', 'yes')
+
+app.config['ADMIN_USERNAME'] = os.environ.get('ADMIN_USERNAME', 'admin')
+
+# Répertoires upload/download
 app.config['UPLOAD_FOLDER'] = 'temp_uploads'
 app.config['DOWNLOAD_FOLDER'] = 'temp_downloads'
 
+STORAGE_SERVER_IP = os.environ.get("STORAGE_SERVER_IP", "storage_server")
+STORAGE_SERVER_PORT = int(os.environ.get("STORAGE_SERVER_PORT", "65432"))
+
+# Initialiser le gestionnaire LDAP
 ldap_manager = LDAP3LoginManager(app)
 
-
+# =========================================
+# 🔧 OUTILS POUR LA COMMUNICATION SOCKET
+# =========================================
 def send_prefixed_string(sock, text):
     text_bytes = text.encode('utf-8')
     sock.sendall(struct.pack('!I', len(text_bytes)))
     sock.sendall(text_bytes)
 
-
 def start_command(sock, command, username):
     sock.sendall(command.encode('utf-8'))
     send_prefixed_string(sock, username)
 
-
+# =========================================
+# 🔒 AUTHENTIFICATION & DÉCORATEURS
+# =========================================
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if 'logged_in' not in session: return redirect(url_for('login'))
+        if 'logged_in' not in session:
+            return redirect(url_for('login'))
         return f(*args, **kwargs)
-
     return decorated_function
 
-
+# =========================================
+# 🔐 ROUTE DE LOGIN
+# =========================================
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         username, password = request.form['username'], request.form['password']
+        print("🔎 Tentative LDAP:", username)
+
+        # Authentification LDAP
         response = ldap_manager.authenticate(username, password)
+        print("LDAP config host:", app.config.get("LDAP_HOST"))
+        print("LDAP response:", response.status, response.user_info)
+
         if response.status == 'success':
             session['logged_in'] = True
             session['username'] = username
+            print(f"✅ Utilisateur {username} connecté avec succès.")
             return redirect(url_for('index'))
-        return render_template('login.html', error='Identifiants LDAP invalides.')
-    return render_template('login.html')
 
+        print(f"❌ Échec d'authentification pour {username}.")
+        return render_template('login.html', error='Identifiants LDAP invalides.')
+
+    return render_template('login.html')
 
 @app.route('/logout')
 def logout():
-    session.clear();
+    session.clear()
     return redirect(url_for('login'))
 
-
+# =========================================
+# 🏠 PAGE D'ACCUEIL
+# =========================================
 @app.route('/')
 @login_required
 def index():
     return render_template('index.html', username=session.get('username'))
 
-
+# =========================================
+# 📤 UPLOAD DE FICHIERS
+# =========================================
 @app.route('/upload', methods=['POST'])
 @login_required
 def upload_files():
     files = request.files.getlist('files_to_upload')
     if not files or files[0].filename == '':
         return render_template('index.html', username=session.get('username'),
-                               message="Erreur : Aucun fichier/dossier sélectionné.")
+            message="Erreur : Aucun fichier/dossier sélectionné.")
 
     username = session.get('username')
     count = 0
@@ -90,17 +129,21 @@ def upload_files():
                     filesize = os.path.getsize(temp_enc_path)
                     s.sendall(struct.pack('!Q', filesize))
                     with open(temp_enc_path, 'rb') as f_enc:
-                        while chunk := f_enc.read(4096): s.sendall(chunk)
+                        while chunk := f_enc.read(4096):
+                            s.sendall(chunk)
                     count += 1
                 os.remove(temp_orig_path)
-                if os.path.exists(temp_enc_path): os.remove(temp_enc_path)
+                if os.path.exists(temp_enc_path):
+                    os.remove(temp_enc_path)
             s.sendall(b'E')
         msg = f"Succès : {count}/{len(files)} fichier(s) envoyé(s) de manière sécurisée."
         return render_template('index.html', username=username, message=msg)
     except Exception as e:
         return render_template('index.html', username=username, message=f"Erreur Critique : {e}")
 
-
+# =========================================
+# 📥 RESTAURATION
+# =========================================
 @app.route('/restore')
 @login_required
 def restore_page():
@@ -117,7 +160,9 @@ def restore_page():
     except Exception as e:
         return f"<h1>Erreur de connexion</h1><p>{e}</p>"
 
-
+# =========================================
+# 📦 DOWNLOAD
+# =========================================
 @app.route('/download/<path:filepath>')
 @login_required
 def download_file(filepath):
@@ -129,14 +174,15 @@ def download_file(filepath):
             start_command(s, 'G', username)
             send_prefixed_string(s, enc_filepath)
             filesize = struct.unpack('!Q', s.recv(8))[0]
-            if filesize == 0: return "<h1>Erreur</h1><p>Fichier non trouvé sur le serveur.</p>"
+            if filesize == 0:
+                return "<h1>Erreur</h1><p>Fichier non trouvé sur le serveur.</p>"
             os.makedirs(app.config['DOWNLOAD_FOLDER'], exist_ok=True)
             temp_enc_path = os.path.join(app.config['DOWNLOAD_FOLDER'], os.path.basename(enc_filepath))
             with open(temp_enc_path, 'wb') as f:
                 rec, total = 0, filesize
                 while rec < total:
-                    chunk = s.recv(4096);
-                    f.write(chunk);
+                    chunk = s.recv(4096)
+                    f.write(chunk)
                     rec += len(chunk)
 
         temp_dec_path = os.path.join(app.config['DOWNLOAD_FOLDER'], os.path.basename(filepath))
@@ -149,7 +195,7 @@ def download_file(filepath):
         @response.call_on_close
         def cleanup():
             try:
-                os.remove(temp_enc_path);
+                os.remove(temp_enc_path)
                 os.remove(temp_dec_path)
             except Exception as e:
                 print(f"Erreur nettoyage {filepath}: {e}")
@@ -158,6 +204,8 @@ def download_file(filepath):
     except Exception as e:
         return f"<h1>Erreur</h1><p>{e}</p>"
 
-
+# =========================================
+# 🚀 DÉMARRAGE
+# =========================================
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

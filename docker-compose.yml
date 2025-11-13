@@ -1,8 +1,4 @@
-# docker-compose.yml
-version: '3.8'
-
 services:
-  # 1. Le client web Flask
   web_client:
     build:
       context: .
@@ -12,13 +8,16 @@ services:
     volumes:
       - ./dossier_client:/app
       - ./crypto_utils.py:/app/crypto_utils.py
-    env_file:
-      - .env
-    depends_on:
-      - storage_server
-      - ldap_server
+    environment:
+      - FLASK_LDAP_HOST=ldap://ldap:389
+      - FLASK_LDAP_BASE_DN=dc=td,dc=anthonymoll,dc=fr
+      - FLASK_LDAP_USER_DN=ou=users
+      - FLASK_LDAP_BIND_USER_DN=cn=admin,dc=td,dc=anthonymoll,dc=fr
+      - FLASK_LDAP_BIND_USER_PASSWORD=adminpassword
+      - ADMIN_USERNAME=admin
+    networks:
+      - auth_net
 
-  # 2. Le serveur de stockage en socket
   storage_server:
     build:
       context: .
@@ -27,26 +26,13 @@ services:
       - "65432:65432"
     volumes:
       - ./dossier_server:/app
-      - storage_data:/app/storage # Volume persistant pour les données
-    env_file:
-      - .env
+      - storage_data:/app/storage
+    networks:
+      - auth_net
 
-
-  # 3. Le serveur OpenLDAP pré-configuré
-  ldap_server:
-    image: osixia/openldap:1.5.0
-    ports:
-      - "389:389"
-    volumes:
-      - ./ldap/user-ldif.ldif:/container/service/slapd/assets/config/bootstrap/ldif/02-users.ldif
-      - ldap_data:/var/lib/ldap
-    environment:
-      - LDAP_ORGANISATION=Mon NAS
-      - LDAP_DOMAIN=mondomaine.com
-      - LDAP_ADMIN_PASSWORD=admin
-      - LDAP_TLS=false # On désactive le TLS pour simplifier la configuration
-
-# Volumes nommés pour la persistance des données
 volumes:
   storage_data:
-  ldap_data:
+
+networks:
+  auth_net:
+    external: true
