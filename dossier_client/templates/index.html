@@ -2,58 +2,112 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Uploader vers le NAS</title>
+    <title>NAS Dashboard</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 2em auto; background-color: #f4f4f4; }
-        .container { background-color: white; padding: 2em; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        h1 { color: #333; }
-        input[type="file"] { border: 1px solid #ccc; padding: 10px; width: 100%; border-radius: 4px; box-sizing: border-box; }
-        button, .nav-button {
-            display: block;
-            width: 100%;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            margin-top: 1em;
-            text-align: center;
-            text-decoration: none; /* Pour les liens stylisés en bouton */
-            box-sizing: border-box;
+        :root {
+            --bg: #0f0b1f;
+            --panel: #161233;
+            --text: #e5e7eb;
+            --muted: #a1a1aa;
+            --primary: #8b5cf6;
+            --primary-hover: #7c3aed;
+            --accent: #22c55e;
+            --info: #06b6d4;
         }
-        button { background-color: #007BFF; color: white; }
-        button:hover { background-color: #0056b3; }
-
-        /* Style spécifique pour le bouton/lien de navigation */
-        .nav-button {
-            background-color: #28a745; /* Vert pour la restauration */
-            color: white;
-        }
-        .nav-button:hover {
-            background-color: #218838;
-        }
-
-        .message { padding: 1em; margin-top: 1.5em; border-radius: 5px; }
-        .success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .error { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 2em auto; background-color: var(--bg); color: var(--text); }
+        .navbar { display:flex; justify-content: space-between; align-items:center; background:#130f2b; padding:10px 14px; border-radius:10px; margin-bottom: 14px; }
+        .brand { color: var(--primary); font-weight:700; }
+        .nav-links a { color: var(--text); text-decoration:none; margin-left:12px; padding:8px 12px; border-radius:8px; background:#1b173b; }
+        .nav-links a:hover { background: var(--primary-hover); }
+        .badge { background: #3b0764; color: var(--primary); padding:4px 8px; border-radius:8px; margin-left: 8px; }
+        .container { background-color: var(--panel); padding: 2em; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
+        h1 { margin-top:0; }
+        input[type="file"] { border: 1px solid #2b2552; padding: 10px; width: 100%; border-radius: 8px; box-sizing: border-box; background:#1b173b; color: var(--text); }
+        button, .nav-button { display:block; width:100%; padding:12px 20px; border:none; border-radius: 8px; cursor:pointer; font-size:16px; margin-top:1em; text-align:center; text-decoration:none; box-sizing:border-box; }
+        button { background-color: var(--primary); color: white; font-weight:600; }
+        button:hover { background-color: var(--primary-hover); }
+        .nav-button { background-color: var(--accent); color: white; }
+        .nav-button:hover { background-color: #16a34a; }
+        .nav-button.info { background-color: var(--info); }
+        .nav-button.info:hover { background-color: #0891b2; }
+        /* Nouveau: grille et cartes pour un tableau de bord pro */
+        .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+        .card { background:#1b173b; border-radius:12px; padding:16px; }
+        .card h2 { margin-top:0; font-size:18px; }
+        .card p { color:#cbd5e1; margin-bottom:12px; }
+        .actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+        .btn { display:inline-flex; align-items:center; gap:8px; background:var(--primary); color:#fff; padding:10px 12px; border-radius:10px; text-decoration:none; }
+        .btn:hover { background: var(--primary-hover); }
+        .btn-secondary { background:#29304f; color:#fff; }
+        .btn-secondary:hover { background:#354063; }
+        .icon { width:18px; height:18px; }
+        .message { padding: 1em; margin-top: 1.5em; border-radius: 10px; }
+        .success { background-color: #064e3b; color: #a7f3d0; border: 1px solid #10b981; }
+        .error { background-color: #3f1d1f; color: #fecaca; border: 1px solid #ef4444; }
     </style>
 </head>
 <body>
+    <div class="navbar">
+        <div><span class="brand">NAS Dashboard</span> <span class="badge">{{ 'Admin' if is_admin else 'Client' }}</span></div>
+        <div class="nav-links">
+            <a href="/restore">Restauration</a>
+            <a href="/versions">Versions</a>
+            <a href="/logout">Déconnexion</a>
+        </div>
+    </div>
     <div class="container">
-        <h1>Envoyer des Fichiers vers le Serveur</h1>
+        <h1>Tableau de bord</h1>
 
-        <form action="/upload" method="post" enctype="multipart/form-data">
-            <p>
-                <label for="files">Choisissez un ou plusieurs fichiers :</label><br><br>
-                <input type="file" id="files" name="files_to_upload" multiple required>
-            </p>
-            <button type="submit">Envoyer les Fichiers</button>
-        </form>
+        <div class="grid">
+            <div class="card">
+                <h2>Upload sécurisé</h2>
+                <p>Ajoutez vos documents, ils sont chiffrés avant envoi.</p>
+                <form action="/upload" method="post" enctype="multipart/form-data" class="actions">
+                    <input type="file" id="files" name="files_to_upload" multiple webkitdirectory directory required>
+                    <button type="submit" class="btn">
+                        <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M12 3v10.586l3.293-3.293 1.414 1.414L12 17.414l-4.707-4.707 1.414-1.414L12 13.586V3h0z"></path>
+                            <path d="M5 19h14v2H5z"></path>
+                        </svg>
+                        Envoyer
+                    </button>
+                </form>
+                <p style="color:#a1a1aa; font-size:14px; margin-top:8px;">
+                    Astuce: sélectionnez un dossier; seuls les fichiers à l’intérieur seront pris en compte et leur chemin interne sera conservé.
+                </p>
+            </div>
+            <div class="card">
+                <h2>Restauration</h2>
+                <p>Téléchargez les fichiers sauvegardés sur le serveur.</p>
+                <a href="/restore" class="btn">
+                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 3a9 9 0 100 18 9 9 0 000-18zm1 5v4h4v2h-6V8h2z"></path>
+                    </svg>
+                    Ouvrir Restauration
+                </a>
+            </div>
+            <div class="card">
+                <h2>Versions</h2>
+                <p>Consultez et restaurez les versions précédentes.</p>
+                <a href="/versions" class="btn">
+                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M5 4h14v2H5V4zm0 7h14v2H5v-2zm0 7h14v2H5v-2z"></path>
+                    </svg>
+                    Gérer les versions
+                </a>
+            </div>
+            <div class="card">
+                <h2>Session</h2>
+                <p>Se déconnecter en toute sécurité.</p>
+                <a href="/logout" class="btn btn-secondary">
+                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M10 17l5-5-5-5v3H3v4h7v3zM19 3h-6v2h6v14h-6v2h6a2 2 0 002-2V5a2 2 0 00-2-2z"></path>
+                    </svg>
+                    Déconnexion
+                </a>
+            </div>
+        </div>
 
-        <!-- Voici le lien correct, stylisé comme un bouton, qui mène vers /restore -->
-        <a href="/restore" class="nav-button">Gérer et Restaurer les Fichiers</a>
-
-        <!-- Ce bloc affichera les messages de succès ou d'erreur -->
         {% if message %}
             <div class="message {{ 'success' if 'Succès' in message else 'error' }}">
                 <strong>{{ message }}</strong>

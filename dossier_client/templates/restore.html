@@ -4,32 +4,48 @@
     <meta charset="UTF-8">
     <title>Restaurer un Fichier</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 2em auto; background-color: #f4f4f4; }
-        .container { background-color: white; padding: 2em; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        h1 { color: #333; }
-        p { color: #555; }
+        :root { --bg:#0f0b1f; --panel:#161233; --text:#e5e7eb; --primary:#8b5cf6; --primary-hover:#7c3aed; }
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 2em auto; background-color: var(--bg); color: var(--text); }
+        .navbar { display:flex; justify-content: space-between; align-items:center; background:#130f2b; padding:10px 14px; border-radius:10px; margin-bottom: 14px; }
+        .brand { color: var(--primary); font-weight:700; }
+        .nav-links a { color: var(--text); text-decoration:none; margin-left:12px; padding:8px 12px; border-radius:8px; background:#1b173b; }
+        .nav-links a:hover { background: var(--primary-hover); }
+        .badge { background: #3b0764; color: var(--primary); padding:4px 8px; border-radius:8px; margin-left: 8px; }
+        .container { background-color: var(--panel); padding: 2em; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
+        h1 { color: var(--text); }
+        p { color: #cbd5e1; }
         ul { list-style-type: none; padding: 0; }
-        li { background-color: #f7f7f7; padding: 1em; border-radius: 5px; margin-bottom: 0.5em; display: flex; justify-content: space-between; align-items: center; }
-        a.download-link { background-color: #007BFF; color: white; padding: 0.5em 1em; text-decoration: none; border-radius: 4px; transition: background-color 0.2s; }
-        a.download-link:hover { background-color: #0056b3; }
-        a.nav-link { display: inline-block; margin-top: 1.5em; color: #007BFF; }
-
-        /* Style pour la vue Administrateur */
-        .admin-view {
-            background-color: #fff8e1; /* Un fond jaune pâle pour se démarquer */
-            border-left: 4px solid #ffc107;
-        }
-        .admin-notice {
-            background-color: #e7f3fe;
-            border-left: 4px solid #2196F3;
-            padding: 1em;
-            margin-bottom: 1.5em;
-        }
+        li { background-color: #1b173b; padding: 1em; border-radius: 8px; margin-bottom: 0.5em; display: flex; justify-content: space-between; align-items: center; }
+        a.download-link { display:inline-flex; align-items:center; gap:8px; background-color: var(--primary); color: white; padding: 0.5em 1em; text-decoration: none; border-radius: 8px; transition: background-color 0.2s; }
+        a.download-link:hover { background-color: var(--primary-hover); }
+        .icon { width:16px; height:16px; }
+        .delete-button { display:inline-flex; align-items:center; gap:8px; background-color: #ef4444; color: white; padding: 0.5em 1em; border:none; border-radius: 8px; cursor:pointer; }
+        .delete-button:hover { background-color:#dc2626; }
+        a.nav-link { display: inline-block; margin-top: 1.5em; color: var(--primary); }
+        .admin-view { background-color: #1f1543; border-left: 4px solid #3b0764; }
+        .admin-notice { background-color: #162135; border-left: 4px solid #3b82f6; padding: 1em; margin-bottom: 1.5em; }
+        .message { padding: 1em; margin-top: 1em; border-radius: 10px; }
+        .success { background-color: #064e3b; color: #a7f3d0; border: 1px solid #10b981; }
+        .error { background-color: #3f1d1f; color: #fecaca; border: 1px solid #ef4444; }
     </style>
 </head>
 <body>
+    <div class="navbar">
+        <div><span class="brand">NAS Dashboard</span> <span class="badge">{{ 'Admin' if is_admin else 'Client' }}</span></div>
+        <div class="nav-links">
+            <a href="/">Dashboard</a>
+            <a href="/versions">Versions</a>
+            <a href="/logout">Déconnexion</a>
+        </div>
+    </div>
     <div class="container">
         <h1>Fichiers sauvegardés pour {{ username }}</h1>
+
+        {% if message %}
+            <div class="message {{ 'success' if 'Supprimé' in message or 'Succès' in message else 'error' }}">
+                <strong>{{ message }}</strong>
+            </div>
+        {% endif %}
 
         {% if is_admin %}
             <p class="admin-notice"><strong>Vue Administrateur :</strong> Vous voyez les fichiers de tous les utilisateurs. Les fichiers des autres utilisateurs sont surlignés.</p>
@@ -42,7 +58,19 @@
                     <li class="{{ 'admin-view' if is_admin and '/' in file else '' }}">
                         <span>{{ file }}</span>
                         {# Le lien de téléchargement utilise 'filepath' comme défini dans la route Python #}
-                        <a href="{{ url_for('download_file', filepath=file) }}" class="download-link">Télécharger</a>
+                        <a href="{{ url_for('download_file', filepath=file) }}" class="download-link">
+                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3v10.586l3.293-3.293 1.414 1.414L12 17.414l-4.707-4.707 1.414-1.414L12 13.586V3z"></path><path d="M5 19h14v2H5z"></path></svg>
+                            Télécharger
+                        </a>
+                        {% if is_admin %}
+                        <form method="post" action="{{ url_for('delete_file_route') }}" style="display:inline;">
+                            <input type="hidden" name="filepath" value="{{ file }}" />
+                            <button type="submit" class="delete-button">
+                                <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 3h6l1 2h5v2H3V5h5l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9z"></path></svg>
+                                Supprimer
+                            </button>
+                        </form>
+                        {% endif %}
                     </li>
                 {% endfor %}
             </ul>
@@ -50,7 +78,7 @@
             <p>Aucun fichier trouvé sur le serveur de stockage.</p>
         {% endif %}
 
-        <a href="{{ url_for('index') }}" class="nav-link">Retour à la page d'envoi</a>
+        <a href="{{ url_for('index') }}" class="nav-link">Retour au Dashboard</a>
     </div>
 </body>
 </html>

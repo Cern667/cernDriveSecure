@@ -1,0 +1,54 @@
+dn: dc=mondomaine,dc=com
+objectClass: top
+objectClass: dcObject
+objectClass: organization
+o: Mon Domaine
+dc: mondomaine
+
+dn: ou=users,dc=mondomaine,dc=com
+objectClass: top
+objectClass: organizationalUnit
+ou: users
+
+# Compte de service pour les recherches
+dn: cn=admin,dc=mondomaine,dc=com
+objectClass: simpleSecurityObject
+objectClass: organizationalRole
+cn: admin
+description: Service account for application searches
+userPassword: admin
+
+# Utilisateur de test
+dn: uid=alice,ou=users,dc=mondomaine,dc=com
+objectClass: inetOrgPerson
+objectClass: top
+cn: Alice Example
+sn: Alice
+givenName: Alice
+uid: alice
+mail: alice@example.com
+userPassword: alice123
+
+
+# Nouveaux utilisateurs
+dn: uid=bob,ou=users,dc=mondomaine,dc=com
+objectClass: inetOrgPerson
+objectClass: top
+cn: Bob Example
+sn: Bob
+givenName: Bob
+uid: bob
+mail: bob@example.com
+userPassword: bob123
+
+dn: uid=carol,ou=users,dc=mondomaine,dc=com
+objectClass: inetOrgPerson
+objectClass: top
+cn: Carol Example
+sn: Carol
+givenName: Carol
+uid: carol
+mail: carol@example.com
+userPassword: carol123
+
+

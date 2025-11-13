@@ -2,46 +2,51 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Connexion en cours...</title>
+    <title>Connexion au NAS</title>
+    <style>
+        :root {
+            --bg: #0f0b1f;
+            --card: #161233;
+            --text: #e5e7eb;
+            --muted: #a1a1aa;
+            --primary: #8b5cf6; /* violet */
+            --primary-hover: #7c3aed;
+            --danger: #ef4444;
+        }
+        body { font-family: Arial, sans-serif; max-width: 420px; margin: 8vh auto; background-color: var(--bg); color: var(--text); }
+        .brand { text-align:center; color: var(--primary); margin-bottom: 18px; font-weight: 700; letter-spacing: .5px; }
+        .card { background: var(--card); padding: 24px; border-radius: 12px; box-shadow: 0 6px 16px rgba(0,0,0,0.35); }
+        h1 { margin-top: 0; font-size: 22px; }
+        label { display: block; margin: 14px 0 8px; }
+        input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #2b2552; background: #1b173b; color: var(--text); }
+        button { width: 100%; margin-top: 18px; padding: 12px; border: none; border-radius: 8px; background: var(--primary); color: #fff; font-weight: 600; cursor: pointer; }
+        button:hover { background: var(--primary-hover); }
+        .error { margin-top: 12px; padding: 10px; border-radius: 8px; background: #3a0f0f; color: #ffb3b3; border: 1px solid #5b1a1a; }
+        .hint { margin-top: 10px; color: var(--muted); font-size: 13px; }
+    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🔐</text></svg>">
 </head>
 <body>
-    <p>Authentification en cours...</p>
+    <div class="brand">NAS Dashboard</div>
+    <div class="card">
+        <h1>Connexion</h1>
 
-    <!-- AVERTISSEMENT : Ce n'est PAS une bonne pratique de sécurité ou d'expérience utilisateur. -->
-    <script>
-        // Demande le nom d'utilisateur
-        const username = prompt("Veuillez entrer votre nom d'utilisateur:", "");
-        // Demande le mot de passe
-        const password = prompt("Veuillez entrer votre mot de passe:", "");
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
 
-        // Si l'utilisateur clique sur "Annuler" sur l'une des boîtes, on ne fait rien
-        if (username !== null && password !== null) {
-            // Crée un formulaire invisible
-            const form = document.createElement('form');
-            form.method = 'post';
-            form.action = '/login'; // Le formulaire sera envoyé à la même route /login
+        <form method="post" action="{{ url_for('login') }}">
+            <label for="username">Nom d'utilisateur</label>
+            <input id="username" name="username" type="text" required autocomplete="username" />
 
-            // Crée un champ invisible pour le nom d'utilisateur
-            const hiddenUser = document.createElement('input');
-            hiddenUser.type = 'hidden';
-            hiddenUser.name = 'username';
-            hiddenUser.value = username;
-            form.appendChild(hiddenUser);
+            <label for="password">Mot de passe</label>
+            <input id="password" name="password" type="password" required autocomplete="current-password" />
 
-            // Crée un champ invisible pour le mot de passe
-            const hiddenPass = document.createElement('input');
-            hiddenPass.type = 'hidden';
-            hiddenPass.name = 'password';
-            hiddenPass.value = password;
-            form.appendChild(hiddenPass);
+            <button type="submit">Se connecter</button>
+        </form>
 
-            // Ajoute le formulaire à la page et le soumet automatiquement
-            document.body.appendChild(form);
-            form.submit();
-        } else {
-            // Si l'utilisateur a annulé, on peut afficher un message
-            document.body.innerHTML = "<h1>Connexion annulée.</h1>";
-        }
-    </script>
+        <p class="hint">Chaque utilisateur LDAP a son espace dédié sur le NAS.</p>
+    </div>
 </body>
 </html>

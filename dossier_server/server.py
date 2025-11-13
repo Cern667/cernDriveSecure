@@ -2,6 +2,7 @@
 import socket
 import os
 import struct
+from datetime import datetime
 from dotenv import load_dotenv
 
 
@@ -55,6 +56,14 @@ def handle_client(conn, addr, storage_directory, admin_username):
                 handle_list_files(conn, user_base_dir, username, admin_username, storage_directory)
             elif message_type == b'G':
                 handle_file_download(conn, user_base_dir)
+            elif message_type == b'V':
+                handle_list_versions(conn, user_base_dir)
+            elif message_type == b'R':
+                handle_restore_version(conn, user_base_dir)
+            elif message_type == b'D':
+                handle_delete_file(conn, user_base_dir, username, admin_username)
+            elif message_type == b'X':
+                handle_delete_version(conn, user_base_dir, username, admin_username)
 
     except Exception as e:
         print(f"❌ Erreur avec {addr}: {e}")
@@ -75,6 +84,17 @@ def handle_file_upload(conn, user_base_dir):
     print(f"    -> UPLOAD de '{relative_path}'...")
     try:
         full_path = safe_join(user_base_dir, relative_path)
+        # Si un fichier existe déjà, on le versionne avant d'écraser
+        if os.path.isfile(full_path):
+            ts = datetime.now().strftime('%Y%m%d-%H%M%S')
+            versions_dir = safe_join(user_base_dir, os.path.join('.versions', relative_path))
+            os.makedirs(versions_dir, exist_ok=True)
+            backup_path = os.path.join(versions_dir, f"{ts}.enc")
+            try:
+                os.replace(full_path, backup_path)
+                print(f"    -> Version précédente sauvegardée: {backup_path}")
+            except Exception as e:
+                print(f"    -> [VERSIONNING] Impossible de sauvegarder l'ancienne version: {e}")
         os.makedirs(os.path.dirname(full_path), exist_ok=True)
         with open(full_path, 'wb') as f:
             received = 0
@@ -118,6 +138,109 @@ def handle_file_download(conn, user_base_dir):
             conn.sendall(struct.pack('!Q', 0))
     except ValueError as e:
         print(f"    -> [SÉCURITÉ] {e}"); conn.sendall(struct.pack('!Q', 0))
+
+
+def handle_list_versions(conn, user_base_dir):
+    enc_relative_path = recv_prefixed_string(conn)
+    print(f"    -> VERSIONS pour '{enc_relative_path}'.")
+    try:
+        versions_dir = safe_join(user_base_dir, os.path.join('.versions', enc_relative_path))
+        versions = []
+        if os.path.isdir(versions_dir):
+            for name in os.listdir(versions_dir):
+                if name.endswith('.enc'):
+                    versions.append(name[:-4])  # retirer .enc
+        versions_bytes = "\n".join(sorted(versions)).encode('utf-8')
+        conn.sendall(struct.pack('!I', len(versions_bytes)))
+        conn.sendall(versions_bytes)
+    except ValueError as e:
+        print(f"    -> [SÉCURITÉ] {e}")
+        conn.sendall(struct.pack('!I', 0))
+
+
+def handle_restore_version(conn, user_base_dir):
+    enc_relative_path = recv_prefixed_string(conn)
+    version_name = recv_prefixed_string(conn)
+    print(f"    -> RESTORE '{enc_relative_path}' version '{version_name}'.")
+    try:
+        src_version_path = safe_join(user_base_dir, os.path.join('.versions', enc_relative_path, f"{version_name}.enc"))
+        dst_current_path = safe_join(user_base_dir, enc_relative_path)
+
+        # Sauvegarder l'actuel en version si présent
+        if os.path.isfile(dst_current_path):
+            ts = datetime.now().strftime('%Y%m%d-%H%M%S')
+            versions_dir = safe_join(user_base_dir, os.path.join('.versions', enc_relative_path))
+            os.makedirs(versions_dir, exist_ok=True)
+            backup_path = os.path.join(versions_dir, f"{ts}.enc")
+            try:
+                os.replace(dst_current_path, backup_path)
+                print(f"    -> Version actuelle sauvegardée: {backup_path}")
+            except Exception as e:
+                print(f"    -> [VERSIONNING] Sauvegarde actuelle échouée: {e}")
+
+        # Restaurer la version demandée
+        os.makedirs(os.path.dirname(dst_current_path), exist_ok=True)
+        os.replace(src_version_path, dst_current_path)
+        # Accusé de réception simple
+        ack = "OK".encode('utf-8')
+        conn.sendall(struct.pack('!I', len(ack)))
+        conn.sendall(ack)
+    except Exception as e:
+        print(f"    -> [RESTORE] Erreur: {e}")
+        msg = f"ERR: {e}".encode('utf-8')
+        conn.sendall(struct.pack('!I', len(msg)))
+        conn.sendall(msg)
+
+
+def handle_delete_file(conn, user_base_dir, username, admin_username):
+    # Suppression réservée à l'admin
+    if username != admin_username:
+        msg = "FORBIDDEN".encode('utf-8')
+        conn.sendall(struct.pack('!I', len(msg)))
+        conn.sendall(msg)
+        return
+
+    rel_path = recv_prefixed_string(conn)
+    print(f"    -> DELETE FILE '{rel_path}'.")
+    try:
+        target = safe_join(user_base_dir, rel_path)
+        if os.path.isfile(target):
+            os.remove(target)
+            ack = "OK".encode('utf-8')
+        else:
+            ack = "ERR: not found".encode('utf-8')
+        conn.sendall(struct.pack('!I', len(ack)))
+        conn.sendall(ack)
+    except Exception as e:
+        msg = f"ERR: {e}".encode('utf-8')
+        conn.sendall(struct.pack('!I', len(msg)))
+        conn.sendall(msg)
+
+
+def handle_delete_version(conn, user_base_dir, username, admin_username):
+    # Suppression réservée à l'admin
+    if username != admin_username:
+        msg = "FORBIDDEN".encode('utf-8')
+        conn.sendall(struct.pack('!I', len(msg)))
+        conn.sendall(msg)
+        return
+
+    enc_relative_path = recv_prefixed_string(conn)
+    version_name = recv_prefixed_string(conn)
+    print(f"    -> DELETE VERSION '{enc_relative_path}' version '{version_name}'.")
+    try:
+        target = safe_join(user_base_dir, os.path.join('.versions', enc_relative_path, f"{version_name}.enc"))
+        if os.path.isfile(target):
+            os.remove(target)
+            ack = "OK".encode('utf-8')
+        else:
+            ack = "ERR: not found".encode('utf-8')
+        conn.sendall(struct.pack('!I', len(ack)))
+        conn.sendall(ack)
+    except Exception as e:
+        msg = f"ERR: {e}".encode('utf-8')
+        conn.sendall(struct.pack('!I', len(msg)))
+        conn.sendall(msg)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Versions des Fichiers</title>
+    <style>
+        :root { --bg:#0f0b1f; --panel:#161233; --text:#e5e7eb; --primary:#8b5cf6; --primary-hover:#7c3aed; --info:#06b6d4; --success:#10b981; --danger:#ef4444; --card:#1b173b; }
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 2em auto; background-color: var(--bg); color: var(--text); }
+        .navbar { display:flex; justify-content: space-between; align-items:center; background:#130f2b; padding:10px 14px; border-radius:10px; margin-bottom: 14px; }
+        .brand { color: var(--primary); font-weight:700; }
+        .nav-links a { color: var(--text); text-decoration:none; margin-left:12px; padding:8px 12px; border-radius:8px; background:#1b173b; }
+        .nav-links a:hover { background: var(--primary-hover); }
+        .badge { background: #3b0764; color: var(--primary); padding:4px 8px; border-radius:8px; margin-left: 8px; }
+        .container { background-color: var(--panel); padding: 2em; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
+        h1 { color: var(--text); }
+        ul { list-style-type: none; padding: 0; }
+        li.file { background-color: var(--card); padding: 1em; border-radius: 12px; margin-bottom: 0.8em; }
+        .versions { margin-top: 0.6em; }
+        .version-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; }
+        .version-label { display:flex; align-items:center; gap:8px; }
+        .btn { display:inline-flex; align-items:center; gap:8px; padding: 8px 12px; border-radius: 10px; text-decoration: none; font-weight:600; }
+        .btn-download { background-color: var(--primary); color: white; }
+        .btn-download:hover { background-color: var(--primary-hover); }
+        .btn-restore { background-color: var(--success); color: white; border:none; cursor:pointer; }
+        .btn-restore:hover { background-color: #0ea37a; }
+        .btn-delete { background-color: var(--danger); color: white; border:none; cursor:pointer; }
+        .btn-delete:hover { background-color: #dc2626; }
+        .icon { width:16px; height:16px; }
+        .nav-link { display: inline-block; margin-top: 1.5em; color: var(--primary); }
+        .message { padding: 1em; margin-bottom: 1em; border-radius: 10px; }
+        .success { background-color: #064e3b; color: #a7f3d0; border: 1px solid #10b981; }
+        .info { background-color: #162135; color: #93c5fd; border: 1px solid #3b82f6; }
+        .admin-view { background-color: #1f1543; border-left: 4px solid #3b0764; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div><span class="brand">NAS Dashboard</span> <span class="badge">{{ 'Admin' if is_admin else 'Client' }}</span></div>
+        <div class="nav-links">
+            <a href="/">Dashboard</a>
+            <a href="/restore">Restauration</a>
+            <a href="/logout">Déconnexion</a>
+        </div>
+    </div>
+    <div class="container">
+        <h1>Versions disponibles pour {{ username }}</h1>
+
+        {% if message %}
+            <div class="message {{ 'success' if 'succès' in message.lower() or 'restaurée' in message.lower() else 'info' }}">
+                <strong>{{ message }}</strong>
+            </div>
+        {% endif %}
+
+        {% if files %}
+            <ul>
+                {% for file in files %}
+                    <li class="file {{ 'admin-view' if is_admin and '/' in file else '' }}">
+                        <strong>{{ file }}</strong>
+                        {% set versions = versions_map.get(file, []) %}
+                        {% if versions %}
+                            <div class="versions">
+                                {% for v in versions %}
+                                    <div class="version-item">
+                                        <span class="version-label">
+                                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 6a9 9 0 100 18 9 9 0 000-18zm1 5v4h4v2h-6V11h2z"></path></svg>
+                                            Version: {{ v }}
+                                        </span>
+                                        <div style="display:flex; gap:8px;">
+                                            <a class="btn btn-download" href="{{ url_for('download_version', filepath=file, version=v) }}">
+                                                <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3v10.586l3.293-3.293 1.414 1.414L12 17.414l-4.707-4.707 1.414-1.414L12 13.586V3z"></path><path d="M5 19h14v2H5z"></path></svg>
+                                                Télécharger
+                                            </a>
+                                            <form method="post" action="{{ url_for('restore_version') }}" style="display:inline">
+                                                <input type="hidden" name="filepath" value="{{ file }}" />
+                                                <input type="hidden" name="version" value="{{ v }}" />
+                                                <button type="submit" class="btn btn-restore">
+                                                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 5l5 5h-3v4H10V10H7l5-5z"></path><path d="M5 19h14v2H5z"></path></svg>
+                                                    Restaurer
+                                                </button>
+                                            </form>
+                                            {% if is_admin %}
+                                            <form method="post" action="{{ url_for('delete_version') }}" style="display:inline">
+                                                <input type="hidden" name="filepath" value="{{ file }}" />
+                                                <input type="hidden" name="version" value="{{ v }}" />
+                                                <button type="submit" class="btn btn-delete">
+                                                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 3h6l1 2h5v2H3V5h5l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9z"></path></svg>
+                                                    Supprimer
+                                                </button>
+                                            </form>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p style="color:#cbd5e1;">Aucune version sauvegardée pour ce fichier.</p>
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p>Aucun fichier trouvé.</p>
+        {% endif %}
+
+        <a href="{{ url_for('index') }}" class="nav-link">Retour à l'envoi de fichiers</a>
+    </div>
+</body>
+</html>
