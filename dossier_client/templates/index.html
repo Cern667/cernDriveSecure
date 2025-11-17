@@ -5,48 +5,54 @@
     <title>NAS Dashboard</title>
     <style>
         :root {
-            --bg: #0f0b1f;
-            --panel: #161233;
+            --bg1: #0a0a15;
+            --bg2: #12122a;
+            --bg3: #1a1b36;
             --text: #e5e7eb;
             --muted: #a1a1aa;
             --primary: #8b5cf6;
             --primary-hover: #7c3aed;
             --accent: #22c55e;
-            --info: #06b6d4;
+            --info: #3b82f6;
         }
-        body { font-family: Arial, sans-serif; max-width: 900px; margin: 2em auto; background-color: var(--bg); color: var(--text); }
-        .navbar { display:flex; justify-content: space-between; align-items:center; background:#130f2b; padding:10px 14px; border-radius:10px; margin-bottom: 14px; }
-        .brand { color: var(--primary); font-weight:700; }
-        .nav-links a { color: var(--text); text-decoration:none; margin-left:12px; padding:8px 12px; border-radius:8px; background:#1b173b; }
+        html, body { height: 100%; }
+        body { font-family: Arial, sans-serif; margin: 0; color: var(--text); background: radial-gradient(1200px 600px at 10% 10%, #100b2a 0%, transparent 40%), radial-gradient(1000px 500px at 90% 20%, #0f1b3f 0%, transparent 45%), linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 40%, var(--bg3) 100%); }
+        .wrap { max-width: 980px; margin: 24px auto; padding: 0 16px; }
+        .navbar { display:flex; justify-content: space-between; align-items:center; background: rgba(19,15,43,0.6); padding:10px 14px; border-radius:12px; margin-bottom: 16px; backdrop-filter: blur(8px); border: 1px solid rgba(139,92,246,0.18); box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 18px rgba(124,58,237,0.15); }
+        .brand { color: var(--primary); font-weight:700; text-shadow: 0 0 6px rgba(139,92,246,0.4); }
+        .nav-links a { color: var(--text); text-decoration:none; margin-left:12px; padding:8px 12px; border-radius:10px; background: rgba(27,23,59,0.85); border: 1px solid rgba(124,58,237,0.25); box-shadow: inset 0 0 0 1px rgba(124,58,237,0.2); }
         .nav-links a:hover { background: var(--primary-hover); }
         .badge { background: #3b0764; color: var(--primary); padding:4px 8px; border-radius:8px; margin-left: 8px; }
-        .container { background-color: var(--panel); padding: 2em; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
+        .container { background: rgba(24,20,50,0.6); padding: 2em; border-radius: 16px; backdrop-filter: blur(10px); border: 1px solid rgba(139,92,246,0.18); box-shadow: 0 8px 24px rgba(0,0,0,0.45), 0 0 24px rgba(124,58,237,0.18); }
         h1 { margin-top:0; }
-        input[type="file"] { border: 1px solid #2b2552; padding: 10px; width: 100%; border-radius: 8px; box-sizing: border-box; background:#1b173b; color: var(--text); }
-        button, .nav-button { display:block; width:100%; padding:12px 20px; border:none; border-radius: 8px; cursor:pointer; font-size:16px; margin-top:1em; text-align:center; text-decoration:none; box-sizing:border-box; }
-        button { background-color: var(--primary); color: white; font-weight:600; }
-        button:hover { background-color: var(--primary-hover); }
-        .nav-button { background-color: var(--accent); color: white; }
-        .nav-button:hover { background-color: #16a34a; }
-        .nav-button.info { background-color: var(--info); }
-        .nav-button.info:hover { background-color: #0891b2; }
-        /* Nouveau: grille et cartes pour un tableau de bord pro */
+        input[type="file"] { border: 1px solid rgba(124,58,237,0.35); padding: 10px; width: 100%; border-radius: 10px; box-sizing: border-box; background: linear-gradient(180deg, rgba(27,23,59,0.95), rgba(20,18,44,0.9)); color: var(--text); box-shadow: inset 0 0 0 1px rgba(124,58,237,0.25), 0 0 12px rgba(124,58,237,0.18); }
+        button, .nav-button { display:block; width:100%; padding:12px 20px; border:none; border-radius: 10px; cursor:pointer; font-size:16px; margin-top:1em; text-align:center; text-decoration:none; box-sizing:border-box; box-shadow: 0 0 0 1px rgba(124,58,237,0.35), 0 8px 20px rgba(59,130,246,0.25), 0 0 22px rgba(139,92,246,0.25); transition: transform .15s ease, filter .15s ease, box-shadow .15s ease; }
+        button { background: linear-gradient(90deg, var(--primary), var(--info)); color: white; font-weight:600; }
+        button:hover { filter: brightness(1.08); transform: translateY(-1px); }
+        .nav-button { background: linear-gradient(90deg, var(--accent), #16a34a); color: white; }
+        .nav-button:hover { filter: brightness(1.05); transform: translateY(-1px); }
+        .nav-button.info { background: linear-gradient(90deg, var(--info), #2563eb); }
+        .nav-button.info:hover { filter: brightness(1.05); }
         .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
-        .card { background:#1b173b; border-radius:12px; padding:16px; }
+        .card { background: rgba(27,23,59,0.7); border: 1px solid rgba(124,58,237,0.18); border-radius:16px; padding:16px; backdrop-filter: blur(8px); box-shadow: 0 6px 18px rgba(0,0,0,0.35), 0 0 18px rgba(124,58,237,0.15); }
         .card h2 { margin-top:0; font-size:18px; }
         .card p { color:#cbd5e1; margin-bottom:12px; }
         .actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-        .btn { display:inline-flex; align-items:center; gap:8px; background:var(--primary); color:#fff; padding:10px 12px; border-radius:10px; text-decoration:none; }
-        .btn:hover { background: var(--primary-hover); }
-        .btn-secondary { background:#29304f; color:#fff; }
-        .btn-secondary:hover { background:#354063; }
+        .toggle { display:flex; gap:8px; margin-bottom:8px; }
+        .toggle .switch { padding:8px 12px; border-radius:10px; background:rgba(27,23,59,0.85); border:1px solid rgba(124,58,237,0.25); color:#fff; cursor:pointer; }
+        .toggle .switch:hover { background: var(--primary-hover); }
+        .btn { display:inline-flex; align-items:center; gap:8px; background:linear-gradient(90deg, var(--primary), var(--info)); color:#fff; padding:10px 12px; border-radius:10px; text-decoration:none; box-shadow: 0 0 0 1px rgba(124,58,237,0.35), 0 8px 20px rgba(59,130,246,0.25); }
+        .btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+        .btn-secondary { background:linear-gradient(90deg, #29304f, #354063); color:#fff; }
+        .btn-secondary:hover { filter: brightness(1.05); }
         .icon { width:18px; height:18px; }
         .message { padding: 1em; margin-top: 1.5em; border-radius: 10px; }
-        .success { background-color: #064e3b; color: #a7f3d0; border: 1px solid #10b981; }
-        .error { background-color: #3f1d1f; color: #fecaca; border: 1px solid #ef4444; }
+        .success { background-color: rgba(6,78,59,0.5); color: #a7f3d0; border: 1px solid #10b981; box-shadow: 0 0 12px rgba(16,185,129,0.2); }
+        .error { background-color: rgba(63,29,31,0.5); color: #fecaca; border: 1px solid #ef4444; box-shadow: 0 0 12px rgba(239,68,68,0.2); }
     </style>
 </head>
 <body>
+    <div class="wrap">
     <div class="navbar">
         <div><span class="brand">NAS Dashboard</span> <span class="badge">{{ 'Admin' if is_admin else 'Client' }}</span></div>
         <div class="nav-links">
@@ -63,7 +69,14 @@
                 <h2>Upload sécurisé</h2>
                 <p>Ajoutez vos documents, ils sont chiffrés avant envoi.</p>
                 <form action="/upload" method="post" enctype="multipart/form-data" class="actions">
-                    <input type="file" id="files" name="files_to_upload" multiple webkitdirectory directory required>
+                    <div style="width:100%">
+                        <div class="toggle">
+                            <button class="switch" id="pickFiles" type="button">Choisir des fichiers</button>
+                            <button class="switch" id="pickDir" type="button">Choisir un dossier</button>
+                        </div>
+                        <input type="file" id="files" name="files_to_upload" multiple required>
+                        <p style="color:#a1a1aa; font-size:13px; margin-top:6px;">ODT supporté. Utilisez “Choisir des fichiers” pour sélectionner des .odt, ou “Choisir un dossier” pour envoyer un dossier complet.</p>
+                    </div>
                     <button type="submit" class="btn">
                         <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                             <path d="M12 3v10.586l3.293-3.293 1.414 1.414L12 17.414l-4.707-4.707 1.414-1.414L12 13.586V3h0z"></path>
@@ -114,6 +127,28 @@
             </div>
         {% endif %}
 
+    </div>
+    <script>
+    (function(){
+        const input = document.getElementById('files');
+        function setMode(mode){
+            if(mode==='dir'){
+                input.removeAttribute('accept');
+                input.setAttribute('multiple','');
+                input.setAttribute('webkitdirectory','');
+                input.setAttribute('directory','');
+            } else {
+                input.removeAttribute('webkitdirectory');
+                input.removeAttribute('directory');
+                input.setAttribute('multiple','');
+                input.setAttribute('accept','.odt,.doc,.docx,.pdf,.txt,.xlsx,.pptx');
+            }
+        }
+        setMode('file');
+        document.getElementById('pickFiles').addEventListener('click', function(e){ e.preventDefault(); setMode('file'); input.click(); });
+        document.getElementById('pickDir').addEventListener('click', function(e){ e.preventDefault(); setMode('dir'); input.click(); });
+    })();
+    </script>
     </div>
 </body>
 </html>

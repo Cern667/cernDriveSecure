@@ -389,7 +389,8 @@ def download_version(filepath, version):
             os.remove(temp_enc_path)
             return "<h1>Erreur de Déchiffrement</h1>"
 
-        response = send_from_directory(app.config['DOWNLOAD_FOLDER'], temp_dec_name, as_attachment=True)
+        from flask import send_file
+        response = send_file(temp_dec_path, as_attachment=True, download_name=os.path.basename(filepath))
 
         @response.call_on_close
         def cleanup():
@@ -521,7 +522,8 @@ def download_file(filepath):
             os.remove(temp_enc_path)
             return "<h1>Erreur de Déchiffrement</h1>"
 
-        response = send_from_directory(app.config['DOWNLOAD_FOLDER'], os.path.basename(filepath), as_attachment=True)
+        from flask import send_file
+        response = send_file(temp_dec_path, as_attachment=True, download_name=os.path.basename(filepath))
 
         @response.call_on_close
         def cleanup():

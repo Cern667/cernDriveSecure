@@ -4,36 +4,42 @@
     <meta charset="UTF-8">
     <title>Versions des Fichiers</title>
     <style>
-        :root { --bg:#0f0b1f; --panel:#161233; --text:#e5e7eb; --primary:#8b5cf6; --primary-hover:#7c3aed; --info:#06b6d4; --success:#10b981; --danger:#ef4444; --card:#1b173b; }
-        body { font-family: Arial, sans-serif; max-width: 900px; margin: 2em auto; background-color: var(--bg); color: var(--text); }
-        .navbar { display:flex; justify-content: space-between; align-items:center; background:#130f2b; padding:10px 14px; border-radius:10px; margin-bottom: 14px; }
-        .brand { color: var(--primary); font-weight:700; }
-        .nav-links a { color: var(--text); text-decoration:none; margin-left:12px; padding:8px 12px; border-radius:8px; background:#1b173b; }
+        :root { --bg1:#0a0a15; --bg2:#12122a; --bg3:#1a1b36; --text:#e5e7eb; --primary:#8b5cf6; --primary-hover:#7c3aed; --info:#3b82f6; --success:#10b981; --danger:#ef4444; --card:#1b173b; }
+        html, body { height: 100%; }
+        body { font-family: Arial, sans-serif; margin: 0; color: var(--text); background: radial-gradient(1200px 600px at 10% 10%, #100b2a 0%, transparent 40%), radial-gradient(1000px 500px at 90% 20%, #0f1b3f 0%, transparent 45%), linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 40%, var(--bg3) 100%); }
+        .wrap { max-width: 980px; margin: 24px auto; padding: 0 16px; }
+        .navbar { display:flex; justify-content: space-between; align-items:center; background: rgba(19,15,43,0.6); padding:10px 14px; border-radius:12px; margin-bottom: 16px; backdrop-filter: blur(8px); border: 1px solid rgba(139,92,246,0.18); box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 18px rgba(124,58,237,0.15); }
+        .brand { color: var(--primary); font-weight:700; text-shadow: 0 0 6px rgba(139,92,246,0.4); }
+        .nav-links a { color: var(--text); text-decoration:none; margin-left:12px; padding:8px 12px; border-radius:10px; background: rgba(27,23,59,0.85); border: 1px solid rgba(124,58,237,0.25); box-shadow: inset 0 0 0 1px rgba(124,58,237,0.2); }
         .nav-links a:hover { background: var(--primary-hover); }
         .badge { background: #3b0764; color: var(--primary); padding:4px 8px; border-radius:8px; margin-left: 8px; }
-        .container { background-color: var(--panel); padding: 2em; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.35); }
+        .container { background: rgba(24,20,50,0.6); padding: 2em; border-radius: 16px; backdrop-filter: blur(10px); border: 1px solid rgba(139,92,246,0.18); box-shadow: 0 8px 24px rgba(0,0,0,0.45), 0 0 24px rgba(124,58,237,0.18); }
         h1 { color: var(--text); }
         ul { list-style-type: none; padding: 0; }
-        li.file { background-color: var(--card); padding: 1em; border-radius: 12px; margin-bottom: 0.8em; }
+        li.file { background: rgba(27,23,59,0.7); border: 1px solid rgba(124,58,237,0.18); padding: 1em; border-radius: 12px; margin-bottom: 0.8em; backdrop-filter: blur(6px); box-shadow: 0 6px 18px rgba(0,0,0,0.35), 0 0 18px rgba(124,58,237,0.12); }
         .versions { margin-top: 0.6em; }
         .version-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; }
         .version-label { display:flex; align-items:center; gap:8px; }
-        .btn { display:inline-flex; align-items:center; gap:8px; padding: 8px 12px; border-radius: 10px; text-decoration: none; font-weight:600; }
-        .btn-download { background-color: var(--primary); color: white; }
-        .btn-download:hover { background-color: var(--primary-hover); }
-        .btn-restore { background-color: var(--success); color: white; border:none; cursor:pointer; }
-        .btn-restore:hover { background-color: #0ea37a; }
-        .btn-delete { background-color: var(--danger); color: white; border:none; cursor:pointer; }
-        .btn-delete:hover { background-color: #dc2626; }
+        .version-label .ts { color:#93c5fd; font-size:12px; margin-left:8px; opacity:.85; }
+        .btn { display:inline-flex; align-items:center; gap:8px; padding: 8px 12px; border-radius: 10px; text-decoration: none; font-weight:600; box-shadow: 0 0 0 1px rgba(124,58,237,0.35); }
+        .btn-download { background: linear-gradient(90deg, var(--primary), var(--info)); color: white; box-shadow: 0 8px 20px rgba(59,130,246,0.25); }
+        .btn-download:hover { filter: brightness(1.08); transform: translateY(-1px); }
+        .btn-restore { background: linear-gradient(90deg, var(--success), #0ea37a); color: white; border:none; cursor:pointer; box-shadow: 0 8px 20px rgba(16,185,129,0.25); }
+        .btn-restore:hover { filter: brightness(1.05); transform: translateY(-1px); }
+        .btn-delete { background: linear-gradient(90deg, var(--danger), #dc2626); color: white; border:none; cursor:pointer; box-shadow: 0 8px 20px rgba(239,68,68,0.25); }
+        .btn-delete:hover { filter: brightness(1.05); transform: translateY(-1px); }
         .icon { width:16px; height:16px; }
         .nav-link { display: inline-block; margin-top: 1.5em; color: var(--primary); }
         .message { padding: 1em; margin-bottom: 1em; border-radius: 10px; }
-        .success { background-color: #064e3b; color: #a7f3d0; border: 1px solid #10b981; }
-        .info { background-color: #162135; color: #93c5fd; border: 1px solid #3b82f6; }
-        .admin-view { background-color: #1f1543; border-left: 4px solid #3b0764; }
+        .success { background-color: rgba(6,78,59,0.5); color: #a7f3d0; border: 1px solid #10b981; box-shadow: 0 0 12px rgba(16,185,129,0.2); }
+        .info { background-color: rgba(22,33,53,0.7); color: #93c5fd; border: 1px solid #3b82f6; box-shadow: 0 0 12px rgba(59,130,246,0.2); }
+        .admin-view { background-color: rgba(31,21,67,0.8); border-left: 4px solid #3b0764; }
+        .help { background: rgba(22,33,53,0.65); border: 1px solid rgba(59,130,246,0.35); color: #cfe0ff; padding: 12px; border-radius: 12px; margin-bottom: 16px; }
+        .help ul { margin: 8px 0 0; padding-left: 16px; }
     </style>
 </head>
 <body>
+    <div class="wrap">
     <div class="navbar">
         <div><span class="brand">NAS Dashboard</span> <span class="badge">{{ 'Admin' if is_admin else 'Client' }}</span></div>
         <div class="nav-links">
@@ -44,6 +50,15 @@
     </div>
     <div class="container">
         <h1>Versions disponibles pour {{ username }}</h1>
+        <div class="help">
+            <strong>Comment ça marche :</strong>
+            <ul>
+                <li>Version 1 = initiale (première sauvegarde du fichier).</li>
+                <li>Chaque nouvel envoi crée la version suivante (2, 3, 4...).</li>
+                <li>Cliquer « Restaurer » remplace le fichier actuel par la version choisie.</li>
+                <li>« Télécharger » récupère la version sans la remplacer.</li>
+            </ul>
+        </div>
 
         {% if message %}
             <div class="message {{ 'success' if 'succès' in message.lower() or 'restaurée' in message.lower() else 'info' }}">
@@ -63,7 +78,8 @@
                                     <div class="version-item">
                                         <span class="version-label">
                                             <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 6a9 9 0 100 18 9 9 0 000-18zm1 5v4h4v2h-6V11h2z"></path></svg>
-                                            Version: {{ v }}
+                                            Version {{ loop.index }}{% if loop.first %} — initiale{% endif %}
+                                            <span class="ts">{{ v }}</span>
                                         </span>
                                         <div style="display:flex; gap:8px;">
                                             <a class="btn btn-download" href="{{ url_for('download_version', filepath=file, version=v) }}">
@@ -93,7 +109,7 @@
                                 {% endfor %}
                             </div>
                         {% else %}
-                            <p style="color:#cbd5e1;">Aucune version sauvegardée pour ce fichier.</p>
+                            <p style="color:#cbd5e1;">Aucune version enregistrée. La prochaine mise à jour créera la <strong>version 1 (initiale)</strong>.</p>
                         {% endif %}
                     </li>
                 {% endfor %}
@@ -103,6 +119,7 @@
         {% endif %}
 
         <a href="{{ url_for('index') }}" class="nav-link">Retour à l'envoi de fichiers</a>
+    </div>
     </div>
 </body>
 </html>

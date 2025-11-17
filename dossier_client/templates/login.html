@@ -5,48 +5,112 @@
     <title>Connexion au NAS</title>
     <style>
         :root {
-            --bg: #0f0b1f;
-            --card: #161233;
+            --bg1: #0b0a1a;
+            --bg2: #12122a;
+            --bg3: #1b1c3a;
+            --violet: #8b5cf6;
+            --violet-d: #7c3aed;
+            --blue: #3b82f6;
             --text: #e5e7eb;
             --muted: #a1a1aa;
-            --primary: #8b5cf6; /* violet */
-            --primary-hover: #7c3aed;
-            --danger: #ef4444;
         }
-        body { font-family: Arial, sans-serif; max-width: 420px; margin: 8vh auto; background-color: var(--bg); color: var(--text); }
-        .brand { text-align:center; color: var(--primary); margin-bottom: 18px; font-weight: 700; letter-spacing: .5px; }
-        .card { background: var(--card); padding: 24px; border-radius: 12px; box-shadow: 0 6px 16px rgba(0,0,0,0.35); }
-        h1 { margin-top: 0; font-size: 22px; }
-        label { display: block; margin: 14px 0 8px; }
-        input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid #2b2552; background: #1b173b; color: var(--text); }
-        button { width: 100%; margin-top: 18px; padding: 12px; border: none; border-radius: 8px; background: var(--primary); color: #fff; font-weight: 600; cursor: pointer; }
-        button:hover { background: var(--primary-hover); }
-        .error { margin-top: 12px; padding: 10px; border-radius: 8px; background: #3a0f0f; color: #ffb3b3; border: 1px solid #5b1a1a; }
-        .hint { margin-top: 10px; color: var(--muted); font-size: 13px; }
+        html, body { height: 100%; }
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(1200px 600px at 10% 10%, #100b2a 0%, transparent 40%),
+                        radial-gradient(1000px 500px at 90% 20%, #0f1b3f 0%, transparent 45%),
+                        linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 40%, var(--bg3) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        body::before {
+            content: "";
+            position: absolute;
+            inset: -20% -20% -20% -20%;
+            background: radial-gradient(600px 300px at 20% 80%, rgba(139,92,246,0.25) 0%, transparent 60%),
+                        radial-gradient(500px 250px at 80% 30%, rgba(59,130,246,0.2) 0%, transparent 60%);
+            filter: blur(60px);
+            z-index: 0;
+            pointer-events: none;
+        }
+        .wrap { width: 100%; max-width: 420px; padding: 24px; z-index: 1; }
+        .brand { text-align: center; color: var(--violet); margin-bottom: 18px; font-weight: 700; letter-spacing: .5px; font-size: 18px; }
+        .card {
+            background: rgba(24, 20, 50, 0.6);
+            border: 1px solid rgba(139, 92, 246, 0.18);
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+            backdrop-filter: blur(10px);
+            padding: 28px;
+            text-align: center;
+        }
+        h1 { margin: 0 0 8px; font-size: 22px; }
+        form { display: flex; flex-direction: column; align-items: center; }
+        label { display: block; width: min(92%, 380px); margin: 14px auto 8px; text-align: left; }
+        input {
+            width: min(92%, 380px);
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(124, 58, 237, 0.35);
+            background: rgba(27, 23, 59, 0.85);
+            color: var(--text);
+            outline: none;
+            margin: 0 auto;
+        }
+        input:focus { border-color: var(--violet); box-shadow: 0 0 0 3px rgba(139,92,246,0.2); }
+        button {
+            width: min(92%, 380px);
+            margin: 18px auto 0;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(90deg, var(--violet), var(--blue));
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        button:hover { filter: brightness(1.08); }
+        .error {
+            width: min(92%, 380px);
+            margin: 12px auto 0;
+            padding: 10px;
+            border-radius: 10px;
+            background: rgba(239, 68, 68, 0.12);
+            color: #ffb3b3;
+            border: 1px solid rgba(239, 68, 68, 0.25);
+        }
+        .hint { width: min(92%, 380px); margin: 10px auto 0; color: var(--muted); font-size: 13px; text-align: center; }
     </style>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🔐</text></svg>">
 </head>
 <body>
-    <div class="brand">NAS Dashboard</div>
-    <div class="card">
-        <h1>Connexion</h1>
+    <div class="wrap">
+        <div class="brand">NAS Dashboard</div>
+        <div class="card">
+            <h1>Connexion</h1>
 
-        {% if error %}
-            <div class="error">{{ error }}</div>
-        {% endif %}
+            {% if error %}
+                <div class="error">{{ error }}</div>
+            {% endif %}
 
-        <form method="post" action="{{ url_for('login') }}">
-            <label for="username">Nom d'utilisateur</label>
-            <input id="username" name="username" type="text" required autocomplete="username" />
+            <form method="post" action="{{ url_for('login') }}">
+                <label for="username">Nom d'utilisateur</label>
+                <input id="username" name="username" type="text" required autocomplete="username" />
 
-            <label for="password">Mot de passe</label>
-            <input id="password" name="password" type="password" required autocomplete="current-password" />
+                <label for="password">Mot de passe</label>
+                <input id="password" name="password" type="password" required autocomplete="current-password" />
 
-            <button type="submit">Se connecter</button>
-        </form>
+                <button type="submit">Se connecter</button>
+            </form>
 
-        <p class="hint">Chaque utilisateur LDAP a son espace dédié sur le NAS.</p>
+            <p class="hint">Chaque utilisateur LDAP a son espace dédié sur le NAS.</p>
+        </div>
     </div>
 </body>
 </html>
