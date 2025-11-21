@@ -7,21 +7,50 @@ services:
       LDAP_DOMAIN: "nas.local"
       LDAP_ADMIN_PASSWORD: "admin"
       LDAP_TLS: "false"
-      LDAP_SEED_INTERNAL_LDIF_PATH: "/ldif"
     ports:
       - "389:389"
     volumes:
       - ldap_data:/var/lib/ldap
       - ldap_config:/etc/ldap/slapd.d
-      - ./ldap_bootstrap:/ldif
     networks:
       - nas_network
     healthcheck:
-      test: ["CMD-SHELL", "ldapsearch -x -H ldap://localhost -b dc=nas,dc=local -D cn=admin,dc=nas,dc=local -w admin || exit 1"]
+      test: [ "CMD-SHELL", "ldapsearch -x -H ldap://localhost -b dc=nas,dc=local -D cn=admin,dc=nas,dc=local -w admin || exit 1" ]
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 15s
+
+  ldap-init:
+    image: osixia/openldap:1.5.0
+    container_name: nas_ldap_init
+    volumes:
+      - ./ldap_bootstrap:/ldap_bootstrap:ro
+    networks:
+      - nas_network
+    depends_on:
+      ldap:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        # Vérifier si les utilisateurs existent déjà
+        if ldapsearch -x -H ldap://ldap:389 -b "ou=users,dc=nas,dc=local" -D "cn=admin,dc=nas,dc=local" -w admin >/dev/null 2>&1; then
+          echo "✓ Les utilisateurs existent déjà dans LDAP"
+          exit 0
+        fi
+        echo "Importation des utilisateurs LDAP..."
+        tail -n +2 /ldap_bootstrap/01-users.ldif | ldapadd -x -H ldap://ldap:389 -D "cn=admin,dc=nas,dc=local" -w admin
+        if [ $$? -eq 0 ]; then
+          echo "✓ Utilisateurs LDAP importés avec succès"
+        else
+          echo "✗ Erreur lors de l'import"
+          exit 1
+        fi
+    restart: "no"
+
+
+
 
   server:
     build:
@@ -51,6 +80,8 @@ services:
       FLASK_SECRET_KEY: "change-me-in-production"
       ADMIN_USERNAME: "admin"
       FLASK_USE_MOCK_LDAP: "False"
+
+      # ---------------- LDAP CONFIG ----------------
       FLASK_LDAP_HOST: "ldap://ldap:389"
       FLASK_LDAP_BASE_DN: "dc=nas,dc=local"
       FLASK_LDAP_USER_DN: "ou=users"
@@ -61,6 +92,8 @@ services:
       FLASK_LDAP_BIND_USER_PASSWORD: "admin"
       FLASK_LDAP_USE_SSL: "False"
       FLASK_LDAP_PORT: "389"
+      # -------------------------------------------------
+
       STORAGE_SERVER_IP: "server"
       STORAGE_SERVER_PORT: "65432"
       UPLOAD_FOLDER: "temp_uploads"
@@ -75,6 +108,8 @@ services:
     depends_on:
       ldap:
         condition: service_healthy
+      ldap-init:
+        condition: service_completed_successfully
       server:
         condition: service_started
     networks:
