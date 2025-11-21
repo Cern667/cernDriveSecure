@@ -10,5 +10,6 @@ pycryptodome==3.20.0
 flask-ldap3-login==0.9.18
 ldap3==2.9.1
 pyasn1==0.5.1
+cryptography>=41.0.0
 
 

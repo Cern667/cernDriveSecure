@@ -1,11 +1,42 @@
 # crypto_utils.py
 from Crypto.Cipher import AES
 import os
+import base64
+from dotenv import load_dotenv
 
-# La clé est partagée par le client et le serveur.
-# Pour une sécurité maximale, chargez-la depuis une variable d'environnement.
-# ATTENTION : La clé doit faire 16, 24 ou 32 octets. "Zb3ul_ProjetAES!" fait 16 octets, c'est bon.
-KEY = b"Zb3ul_ProjetAES!"
+# Charger les variables d'environnement
+load_dotenv()
+
+def _get_encryption_key():
+    """
+    Récupère la clé de chiffrement depuis les variables d'environnement.
+    Utilise une clé par défaut seulement si AES_ENCRYPTION_KEY n'est pas définie.
+
+    Returns:
+        bytes: Clé de chiffrement AES (16, 24 ou 32 octets)
+    """
+    # Tenter de récupérer la clé depuis l'environnement
+    key_b64 = os.environ.get('AES_ENCRYPTION_KEY')
+
+    if key_b64:
+        try:
+            # Décoder la clé base64
+            key = base64.b64decode(key_b64)
+            # Vérifier la taille
+            if len(key) in [16, 24, 32]:
+                return key
+            else:
+                print(f"⚠️  AVERTISSEMENT: La clé AES doit faire 16, 24 ou 32 octets (taille actuelle: {len(key)})")
+        except Exception as e:
+            print(f"⚠️  AVERTISSEMENT: Impossible de décoder AES_ENCRYPTION_KEY: {e}")
+
+    # Clé par défaut (NON SÉCURISÉE - à utiliser uniquement pour le développement)
+    print("⚠️  AVERTISSEMENT SÉCURITÉ: Utilisation de la clé par défaut!")
+    print("⚠️  Générez une clé sécurisée avec: python generate_aes_key.py")
+    return b"Zb3ul_ProjetAES!"
+
+# Initialiser la clé au chargement du module
+KEY = _get_encryption_key()
 
 
 

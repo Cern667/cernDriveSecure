@@ -1,0 +1,68 @@
+    # Structure de base pour les utilisateurs
+    dn: ou=users,dc=nas,dc=local
+    objectClass: organizationalUnit
+    ou: users
+
+    # Utilisateur Alice
+    dn: uid=alice,ou=users,dc=nas,dc=local
+    objectClass: inetOrgPerson
+    objectClass: posixAccount
+    objectClass: shadowAccount
+    uid: alice
+    cn: Alice Wonderland
+    sn: Wonderland
+    givenName: Alice
+    mail: alice@nas.local
+    uidNumber: 1001
+    gidNumber: 1001
+    homeDirectory: /home/alice
+    loginShell: /bin/bash
+    userPassword: alice123
+
+    # Utilisateur Bob
+    dn: uid=bob,ou=users,dc=nas,dc=local
+    objectClass: inetOrgPerson
+    objectClass: posixAccount
+    objectClass: shadowAccount
+    uid: bob
+    cn: Bob Builder
+    sn: Builder
+    givenName: Bob
+    mail: bob@nas.local
+    uidNumber: 1002
+    gidNumber: 1002
+    homeDirectory: /home/bob
+    loginShell: /bin/bash
+    userPassword: bob123
+
+    # Utilisateur Charlie
+    dn: uid=charlie,ou=users,dc=nas,dc=local
+    objectClass: inetOrgPerson
+    objectClass: posixAccount
+    objectClass: shadowAccount
+    uid: charlie
+    cn: Charlie Brown
+    sn: Brown
+    givenName: Charlie
+    mail: charlie@nas.local
+    uidNumber: 1003
+    gidNumber: 1003
+    homeDirectory: /home/charlie
+    loginShell: /bin/bash
+    userPassword: charlie123
+
+    # Utilisateur Admin
+    dn: uid=admin,ou=users,dc=nas,dc=local
+    objectClass: inetOrgPerson
+    objectClass: posixAccount
+    objectClass: shadowAccount
+    uid: admin
+    cn: Administrator
+    sn: Admin
+    givenName: Admin
+    mail: admin@nas.local
+    uidNumber: 1000
+    gidNumber: 1000
+    homeDirectory: /home/admin
+    loginShell: /bin/bash
+    userPassword: admin123

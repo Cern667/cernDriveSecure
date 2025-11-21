@@ -2,153 +2,828 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>NAS Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NAS Dashboard - Accueil</title>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         :root {
-            --bg1: #0a0a15;
-            --bg2: #12122a;
-            --bg3: #1a1b36;
-            --text: #e5e7eb;
-            --muted: #a1a1aa;
-            --primary: #8b5cf6;
-            --primary-hover: #7c3aed;
-            --accent: #22c55e;
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
             --info: #3b82f6;
+            --border: rgba(148, 163, 184, 0.1);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
         }
-        html, body { height: 100%; }
-        body { font-family: Arial, sans-serif; margin: 0; color: var(--text); background: radial-gradient(1200px 600px at 10% 10%, #100b2a 0%, transparent 40%), radial-gradient(1000px 500px at 90% 20%, #0f1b3f 0%, transparent 45%), linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 40%, var(--bg3) 100%); }
-        .wrap { max-width: 980px; margin: 24px auto; padding: 0 16px; }
-        .navbar { display:flex; justify-content: space-between; align-items:center; background: rgba(19,15,43,0.6); padding:10px 14px; border-radius:12px; margin-bottom: 16px; backdrop-filter: blur(8px); border: 1px solid rgba(139,92,246,0.18); box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 18px rgba(124,58,237,0.15); }
-        .brand { color: var(--primary); font-weight:700; text-shadow: 0 0 6px rgba(139,92,246,0.4); }
-        .nav-links a { color: var(--text); text-decoration:none; margin-left:12px; padding:8px 12px; border-radius:10px; background: rgba(27,23,59,0.85); border: 1px solid rgba(124,58,237,0.25); box-shadow: inset 0 0 0 1px rgba(124,58,237,0.2); }
-        .nav-links a:hover { background: var(--primary-hover); }
-        .badge { background: #3b0764; color: var(--primary); padding:4px 8px; border-radius:8px; margin-left: 8px; }
-        .container { background: rgba(24,20,50,0.6); padding: 2em; border-radius: 16px; backdrop-filter: blur(10px); border: 1px solid rgba(139,92,246,0.18); box-shadow: 0 8px 24px rgba(0,0,0,0.45), 0 0 24px rgba(124,58,237,0.18); }
-        h1 { margin-top:0; }
-        input[type="file"] { border: 1px solid rgba(124,58,237,0.35); padding: 10px; width: 100%; border-radius: 10px; box-sizing: border-box; background: linear-gradient(180deg, rgba(27,23,59,0.95), rgba(20,18,44,0.9)); color: var(--text); box-shadow: inset 0 0 0 1px rgba(124,58,237,0.25), 0 0 12px rgba(124,58,237,0.18); }
-        button, .nav-button { display:block; width:100%; padding:12px 20px; border:none; border-radius: 10px; cursor:pointer; font-size:16px; margin-top:1em; text-align:center; text-decoration:none; box-sizing:border-box; box-shadow: 0 0 0 1px rgba(124,58,237,0.35), 0 8px 20px rgba(59,130,246,0.25), 0 0 22px rgba(139,92,246,0.25); transition: transform .15s ease, filter .15s ease, box-shadow .15s ease; }
-        button { background: linear-gradient(90deg, var(--primary), var(--info)); color: white; font-weight:600; }
-        button:hover { filter: brightness(1.08); transform: translateY(-1px); }
-        .nav-button { background: linear-gradient(90deg, var(--accent), #16a34a); color: white; }
-        .nav-button:hover { filter: brightness(1.05); transform: translateY(-1px); }
-        .nav-button.info { background: linear-gradient(90deg, var(--info), #2563eb); }
-        .nav-button.info:hover { filter: brightness(1.05); }
-        .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
-        .card { background: rgba(27,23,59,0.7); border: 1px solid rgba(124,58,237,0.18); border-radius:16px; padding:16px; backdrop-filter: blur(8px); box-shadow: 0 6px 18px rgba(0,0,0,0.35), 0 0 18px rgba(124,58,237,0.15); }
-        .card h2 { margin-top:0; font-size:18px; }
-        .card p { color:#cbd5e1; margin-bottom:12px; }
-        .actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-        .toggle { display:flex; gap:8px; margin-bottom:8px; }
-        .toggle .switch { padding:8px 12px; border-radius:10px; background:rgba(27,23,59,0.85); border:1px solid rgba(124,58,237,0.25); color:#fff; cursor:pointer; }
-        .toggle .switch:hover { background: var(--primary-hover); }
-        .btn { display:inline-flex; align-items:center; gap:8px; background:linear-gradient(90deg, var(--primary), var(--info)); color:#fff; padding:10px 12px; border-radius:10px; text-decoration:none; box-shadow: 0 0 0 1px rgba(124,58,237,0.35), 0 8px 20px rgba(59,130,246,0.25); }
-        .btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
-        .btn-secondary { background:linear-gradient(90deg, #29304f, #354063); color:#fff; }
-        .btn-secondary:hover { filter: brightness(1.05); }
-        .icon { width:18px; height:18px; }
-        .message { padding: 1em; margin-top: 1.5em; border-radius: 10px; }
-        .success { background-color: rgba(6,78,59,0.5); color: #a7f3d0; border: 1px solid #10b981; box-shadow: 0 0 12px rgba(16,185,129,0.2); }
-        .error { background-color: rgba(63,29,31,0.5); color: #fecaca; border: 1px solid #ef4444; box-shadow: 0 0 12px rgba(239,68,68,0.2); }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Navigation */
+        .navbar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            background: rgba(30, 41, 59, 0.9);
+        }
+
+        .navbar-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .brand svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-left: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .page-header h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-header p {
+            color: var(--text-muted);
+            font-size: 1.125rem;
+        }
+
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            border-color: rgba(99, 102, 241, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            padding: 0.5rem;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .card-icon.primary { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
+        .card-icon.success { background: linear-gradient(135deg, var(--success), #059669); }
+        .card-icon.info { background: linear-gradient(135deg, var(--info), #2563eb); }
+        .card-icon.warning { background: linear-gradient(135deg, var(--warning), #d97706); }
+
+        .card-icon svg {
+            width: 24px;
+            height: 24px;
+            color: white;
+        }
+
+        .card h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card p {
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        /* Drop Zone */
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: 0.75rem;
+            padding: 2rem;
+            text-align: center;
+            background: rgba(15, 23, 42, 0.5);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 1rem;
+        }
+
+        .drop-zone:hover {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.05);
+        }
+
+        .drop-zone.drag-over {
+            border-color: var(--primary);
+            background: rgba(99, 102, 241, 0.1);
+            transform: scale(1.02);
+        }
+
+        .drop-zone-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .drop-zone-icon {
+            width: 64px;
+            height: 64px;
+            color: var(--primary);
+        }
+
+        .drop-zone h3 {
+            font-size: 1.125rem;
+            color: var(--text-primary);
+        }
+
+        .drop-zone p {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin: 0;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        /* File List */
+        .file-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 0.5rem;
+            background: rgba(15, 23, 42, 0.5);
+        }
+
+        .file-list:empty {
+            display: none;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            margin-bottom: 0.25rem;
+            background: var(--bg-secondary);
+        }
+
+        .file-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-info svg {
+            width: 16px;
+            height: 16px;
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+
+        .file-name {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-remove {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+            transition: background 0.2s ease;
+        }
+
+        .file-remove:hover {
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.9375rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            width: 100%;
+        }
+
+        .btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-tertiary);
+            filter: brightness(1.1);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, var(--info), #2563eb);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning), #d97706);
+            color: white;
+        }
+
+        /* Messages */
+        .message {
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message svg {
+            width: 24px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .message.success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .message.error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+
+        /* Upload Mode Toggle */
+        .mode-toggle {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .mode-toggle button {
+            flex: 1;
+            padding: 0.625rem 1rem;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .mode-toggle button.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-color: transparent;
+        }
+
+        .mode-toggle button:hover:not(.active) {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .page-header h1 {
+                font-size: 2rem;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="wrap">
-    <div class="navbar">
-        <div><span class="brand">NAS Dashboard</span> <span class="badge">{{ 'Admin' if is_admin else 'Client' }}</span></div>
-        <div class="nav-links">
-            <a href="/restore">Restauration</a>
-            <a href="/versions">Versions</a>
-            <a href="/logout">Déconnexion</a>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="brand">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"/>
+                    <path d="M7 8h10v8H7z" opacity="0.5"/>
+                </svg>
+                <span>NAS Dashboard <span class="badge">{{ 'Admin' if is_admin else 'Client' }}</span></span>
+            </div>
+            <div class="nav-links">
+                <a href="/">Accueil</a>
+                <a href="/restore">Fichiers</a>
+                <a href="/versions">Versions</a>
+                <a href="/logout">Déconnexion</a>
+            </div>
         </div>
-    </div>
+    </nav>
+
+    <!-- Main Content -->
     <div class="container">
-        <h1>Tableau de bord</h1>
+        <div class="page-header">
+            <h1>Bienvenue sur votre NAS</h1>
+            <p>Gérez vos fichiers en toute sécurité avec chiffrement AES</p>
+        </div>
+
+        {% if message %}
+        <div class="message {{ 'success' if 'Succès' in message else 'error' }}">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                {% if 'Succès' in message %}
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                {% else %}
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                {% endif %}
+            </svg>
+            <strong>{{ message }}</strong>
+        </div>
+        {% endif %}
 
         <div class="grid">
+            <!-- Upload Card -->
             <div class="card">
-                <h2>Upload sécurisé</h2>
-                <p>Ajoutez vos documents, ils sont chiffrés avant envoi.</p>
-                <form action="/upload" method="post" enctype="multipart/form-data" class="actions">
-                    <div style="width:100%">
-                        <div class="toggle">
-                            <button class="switch" id="pickFiles" type="button">Choisir des fichiers</button>
-                            <button class="switch" id="pickDir" type="button">Choisir un dossier</button>
-                        </div>
-                        <input type="file" id="files" name="files_to_upload" multiple required>
-                        <p style="color:#a1a1aa; font-size:13px; margin-top:6px;">ODT supporté. Utilisez “Choisir des fichiers” pour sélectionner des .odt, ou “Choisir un dossier” pour envoyer un dossier complet.</p>
-                    </div>
-                    <button type="submit" class="btn">
-                        <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                            <path d="M12 3v10.586l3.293-3.293 1.414 1.414L12 17.414l-4.707-4.707 1.414-1.414L12 13.586V3h0z"></path>
-                            <path d="M5 19h14v2H5z"></path>
+                <div class="card-header">
+                    <div class="card-icon primary">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/>
                         </svg>
-                        Envoyer
+                    </div>
+                    <h2>Upload Sécurisé</h2>
+                </div>
+                <p>Glissez-déposez vos fichiers ou dossiers, ils seront automatiquement chiffrés avec AES-256</p>
+
+                <form id="uploadForm" action="/upload" method="post" enctype="multipart/form-data">
+                    <div class="mode-toggle">
+                        <button type="button" id="modeFiles" class="active">
+                            <svg style="width:16px;height:16px;display:inline;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/>
+                            </svg>
+                            Fichiers
+                        </button>
+                        <button type="button" id="modeFolder" class="">
+                            <svg style="width:16px;height:16px;display:inline;vertical-align:middle;margin-right:4px" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+                            </svg>
+                            Dossier
+                        </button>
+                    </div>
+
+                    <div class="drop-zone" id="dropZone">
+                        <div class="drop-zone-content">
+                            <svg class="drop-zone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                            </svg>
+                            <h3>Glissez-déposez vos fichiers ici</h3>
+                            <p>ou cliquez pour parcourir</p>
+                        </div>
+                    </div>
+
+                    <input type="file" id="fileInput" name="files_to_upload" class="file-input" multiple>
+
+                    <div class="file-list" id="fileList"></div>
+
+                    <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/>
+                        </svg>
+                        Envoyer les fichiers
                     </button>
                 </form>
-                <p style="color:#a1a1aa; font-size:14px; margin-top:8px;">
-                    Astuce: sélectionnez un dossier; seuls les fichiers à l’intérieur seront pris en compte et leur chemin interne sera conservé.
-                </p>
             </div>
+
+            <!-- Restore Card -->
             <div class="card">
-                <h2>Restauration</h2>
-                <p>Téléchargez les fichiers sauvegardés sur le serveur.</p>
-                <a href="/restore" class="btn">
-                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M12 3a9 9 0 100 18 9 9 0 000-18zm1 5v4h4v2h-6V8h2z"></path>
+                <div class="card-header">
+                    <div class="card-icon success">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/>
+                        </svg>
+                    </div>
+                    <h2>Mes Fichiers</h2>
+                </div>
+                <p>Accédez à tous vos fichiers sauvegardés et téléchargez-les en clair</p>
+                <a href="/restore" class="btn btn-success">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/>
                     </svg>
-                    Ouvrir Restauration
+                    Voir mes fichiers
                 </a>
             </div>
+
+            <!-- Versions Card -->
             <div class="card">
-                <h2>Versions</h2>
-                <p>Consultez et restaurez les versions précédentes.</p>
-                <a href="/versions" class="btn">
-                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M5 4h14v2H5V4zm0 7h14v2H5v-2zm0 7h14v2H5v-2z"></path>
+                <div class="card-header">
+                    <div class="card-icon info">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>
+                        </svg>
+                    </div>
+                    <h2>Historique</h2>
+                </div>
+                <p>Consultez et restaurez les versions antérieures de vos fichiers</p>
+                <a href="/versions" class="btn btn-info">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/>
                     </svg>
                     Gérer les versions
                 </a>
             </div>
+
+            <!-- Session Card -->
             <div class="card">
-                <h2>Session</h2>
-                <p>Se déconnecter en toute sécurité.</p>
-                <a href="/logout" class="btn btn-secondary">
-                    <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M10 17l5-5-5-5v3H3v4h7v3zM19 3h-6v2h6v14h-6v2h6a2 2 0 002-2V5a2 2 0 00-2-2z"></path>
+                <div class="card-header">
+                    <div class="card-icon warning">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+                        </svg>
+                    </div>
+                    <h2>Mon Compte</h2>
+                </div>
+                <p>Gérez votre session et déconnectez-vous en toute sécurité</p>
+                <a href="/logout" class="btn btn-warning">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5-5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
                     </svg>
                     Déconnexion
                 </a>
             </div>
         </div>
-
-        {% if message %}
-            <div class="message {{ 'success' if 'Succès' in message else 'error' }}">
-                <strong>{{ message }}</strong>
-            </div>
-        {% endif %}
-
     </div>
+
     <script>
-    (function(){
-        const input = document.getElementById('files');
-        function setMode(mode){
-            if(mode==='dir'){
-                input.removeAttribute('accept');
-                input.setAttribute('multiple','');
-                input.setAttribute('webkitdirectory','');
-                input.setAttribute('directory','');
+        // Elements
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const fileList = document.getElementById('fileList');
+        const submitBtn = document.getElementById('submitBtn');
+        const modeFiles = document.getElementById('modeFiles');
+        const modeFolder = document.getElementById('modeFolder');
+        const uploadForm = document.getElementById('uploadForm');
+
+        let selectedFiles = new DataTransfer();
+        let currentMode = 'files';
+
+        // Mode toggle
+        modeFiles.addEventListener('click', () => {
+            currentMode = 'files';
+            modeFiles.classList.add('active');
+            modeFolder.classList.remove('active');
+            fileInput.removeAttribute('webkitdirectory');
+            fileInput.removeAttribute('directory');
+            fileInput.setAttribute('multiple', '');
+            clearFiles();
+        });
+
+        modeFolder.addEventListener('click', () => {
+            currentMode = 'folder';
+            modeFolder.classList.add('active');
+            modeFiles.classList.remove('active');
+            fileInput.setAttribute('webkitdirectory', '');
+            fileInput.setAttribute('directory', '');
+            fileInput.setAttribute('multiple', '');
+            clearFiles();
+        });
+
+        // Click to browse
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // Drag and drop handlers
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.add('drag-over');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, () => {
+                dropZone.classList.remove('drag-over');
+            }, false);
+        });
+
+        dropZone.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            const dt = e.dataTransfer;
+            const items = dt.items;
+
+            if (items) {
+                handleItems(items);
             } else {
-                input.removeAttribute('webkitdirectory');
-                input.removeAttribute('directory');
-                input.setAttribute('multiple','');
-                input.setAttribute('accept','.odt,.doc,.docx,.pdf,.txt,.xlsx,.pptx');
+                handleFiles(dt.files);
             }
         }
-        setMode('file');
-        document.getElementById('pickFiles').addEventListener('click', function(e){ e.preventDefault(); setMode('file'); input.click(); });
-        document.getElementById('pickDir').addEventListener('click', function(e){ e.preventDefault(); setMode('dir'); input.click(); });
-    })();
+
+        async function handleItems(items) {
+            const files = [];
+            for (let i = 0; i < items.length; i++) {
+                const item = items[i].webkitGetAsEntry();
+                if (item) {
+                    await traverseFileTree(item, files);
+                }
+            }
+            addFiles(files);
+        }
+
+        function traverseFileTree(item, files, path = '') {
+            return new Promise((resolve) => {
+                if (item.isFile) {
+                    item.file((file) => {
+                        const newFile = new File([file], path + file.name, { type: file.type });
+                        files.push(newFile);
+                        resolve();
+                    });
+                } else if (item.isDirectory) {
+                    const dirReader = item.createReader();
+                    dirReader.readEntries((entries) => {
+                        const promises = [];
+                        for (let i = 0; i < entries.length; i++) {
+                            promises.push(traverseFileTree(entries[i], files, path + item.name + '/'));
+                        }
+                        Promise.all(promises).then(resolve);
+                    });
+                }
+            });
+        }
+
+        function handleFiles(files) {
+            addFiles([...files]);
+        }
+
+        fileInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files);
+        });
+
+        function addFiles(files) {
+            files.forEach(file => {
+                selectedFiles.items.add(file);
+            });
+            updateFileList();
+            fileInput.files = selectedFiles.files;
+        }
+
+        function removeFile(index) {
+            const newDataTransfer = new DataTransfer();
+            for (let i = 0; i < selectedFiles.files.length; i++) {
+                if (i !== index) {
+                    newDataTransfer.items.add(selectedFiles.files[i]);
+                }
+            }
+            selectedFiles = newDataTransfer;
+            fileInput.files = selectedFiles.files;
+            updateFileList();
+        }
+
+        function clearFiles() {
+            selectedFiles = new DataTransfer();
+            fileInput.files = selectedFiles.files;
+            updateFileList();
+        }
+
+        function updateFileList() {
+            fileList.innerHTML = '';
+            const files = selectedFiles.files;
+
+            if (files.length === 0) {
+                submitBtn.disabled = true;
+                return;
+            }
+
+            submitBtn.disabled = false;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                fileItem.innerHTML = `
+                    <div class="file-info">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6z"/>
+                        </svg>
+                        <span class="file-name" title="${file.name}">${file.name}</span>
+                    </div>
+                    <button type="button" class="file-remove" data-index="${i}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
+                        </svg>
+                    </button>
+                `;
+                fileList.appendChild(fileItem);
+            }
+
+            // Add remove handlers
+            document.querySelectorAll('.file-remove').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const index = parseInt(e.currentTarget.getAttribute('data-index'));
+                    removeFile(index);
+                });
+            });
+        }
+
+        // Form validation
+        uploadForm.addEventListener('submit', (e) => {
+            if (selectedFiles.files.length === 0) {
+                e.preventDefault();
+                alert('Veuillez sélectionner au moins un fichier');
+            }
+        });
     </script>
-    </div>
 </body>
 </html>

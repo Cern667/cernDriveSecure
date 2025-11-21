@@ -1,73 +1,34 @@
-## Secrets & environnements
+# Secrets
 .env
-.env.*
 *.env
-!.env.example
 
-## Environnements Python
-.venv/
+# Cles utilisateurs (JAMAIS commit)
+user_keys/
+
+# Fichiers stockes (donnees utilisateurs)
+storage/
+
+# Fichiers temporaires
+temp_uploads/
+temp_downloads/
+
+# Python
 venv/
-env/
-pip-wheel-metadata/
-pip-log.txt
-
-## Caches et artefacts Python
-**/__pycache__/
+__pycache__/
 *.pyc
 *.pyo
-*.pyd
-*.pdb
-*.so
-*.dylib
-*.o
-*.a
-*.egg-info/
-*.egg
-build/
-dist/
-.wheelhouse/
-.mypy_cache/
-.pytest_cache/
-.coverage*
-coverage/
-.tox/
-.cache/
-.ruff_cache/
 
-## Logs et bases
-*.log
-logs/
-*.sqlite*
-*.db
-
-## IDE/OS
+# IDE
 .idea/
 .vscode/
 *.code-workspace
+
+# OS
 .DS_Store
 Thumbs.db
-.vs/
 
-## Runtimes portables / toolchains lourds
-python_portable/
-portable_env/
+# Logs
+*.log
 
-## Données temporaires (client)
-**/temp_uploads/
-**/temp_downloads/
-
-## Données de stockage (serveur)
-storage/
-dossier_server/storage/
-!storage/.gitkeep
-!dossier_server/storage/.gitkeep
-
-## Certificats/Clés
-*.pem
-*.crt
-*.key
-*.pfx
-
-## Artefacts chiffrés temporaires
-temp_downloads/*.enc
-dossier_client/temp_downloads/*.enc
+# Docker volumes locaux
+ldap/

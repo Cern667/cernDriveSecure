@@ -2,97 +2,712 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Restaurer un Fichier</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mes Fichiers - NAS Dashboard</title>
     <style>
-        :root { --bg1:#0a0a15; --bg2:#12122a; --bg3:#1a1b36; --text:#e5e7eb; --primary:#8b5cf6; --primary-hover:#7c3aed; --info:#3b82f6; }
-        html, body { height: 100%; }
-        body { font-family: Arial, sans-serif; margin: 0; color: var(--text); background: radial-gradient(1200px 600px at 10% 10%, #100b2a 0%, transparent 40%), radial-gradient(1000px 500px at 90% 20%, #0f1b3f 0%, transparent 45%), linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 40%, var(--bg3) 100%); }
-        .wrap { max-width: 980px; margin: 24px auto; padding: 0 16px; }
-        .navbar { display:flex; justify-content: space-between; align-items:center; background: rgba(19,15,43,0.6); padding:10px 14px; border-radius:12px; margin-bottom: 16px; backdrop-filter: blur(8px); border: 1px solid rgba(139,92,246,0.18); box-shadow: 0 4px 18px rgba(0,0,0,0.35), 0 0 18px rgba(124,58,237,0.15); }
-        .brand { color: var(--primary); font-weight:700; text-shadow: 0 0 6px rgba(139,92,246,0.4); }
-        .nav-links a { color: var(--text); text-decoration:none; margin-left:12px; padding:8px 12px; border-radius:10px; background: rgba(27,23,59,0.85); border: 1px solid rgba(124,58,237,0.25); box-shadow: inset 0 0 0 1px rgba(124,58,237,0.2); }
-        .nav-links a:hover { background: var(--primary-hover); }
-        .badge { background: #3b0764; color: var(--primary); padding:4px 8px; border-radius:8px; margin-left: 8px; }
-        .container { background: rgba(24,20,50,0.6); padding: 2em; border-radius: 16px; backdrop-filter: blur(10px); border: 1px solid rgba(139,92,246,0.18); box-shadow: 0 8px 24px rgba(0,0,0,0.45), 0 0 24px rgba(124,58,237,0.18); }
-        h1 { color: var(--text); }
-        p { color: #cbd5e1; }
-        ul { list-style-type: none; padding: 0; }
-        li { background: rgba(27,23,59,0.7); border: 1px solid rgba(124,58,237,0.18); padding: 1em; border-radius: 12px; margin-bottom: 0.8em; display: flex; justify-content: space-between; align-items: center; backdrop-filter: blur(6px); box-shadow: 0 6px 18px rgba(0,0,0,0.35), 0 0 18px rgba(124,58,237,0.12); }
-        a.download-link { display:inline-flex; align-items:center; gap:8px; background: linear-gradient(90deg, var(--primary), var(--info)); color: white; padding: 0.6em 1.1em; text-decoration: none; border-radius: 10px; box-shadow: 0 0 0 1px rgba(124,58,237,0.35), 0 8px 20px rgba(59,130,246,0.25); }
-        a.download-link:hover { filter: brightness(1.08); transform: translateY(-1px); }
-        .icon { width:16px; height:16px; }
-        .delete-button { display:inline-flex; align-items:center; gap:8px; background: linear-gradient(90deg, #ef4444, #dc2626); color: white; padding: 0.6em 1.1em; border:none; border-radius: 10px; cursor:pointer; box-shadow: 0 0 0 1px rgba(239,68,68,0.35), 0 8px 20px rgba(239,68,68,0.25); }
-        .delete-button:hover { filter: brightness(1.05); transform: translateY(-1px); }
-        a.nav-link { display: inline-block; margin-top: 1.5em; color: var(--primary); }
-        .admin-view { background-color: rgba(31,21,67,0.8); border-left: 4px solid #3b0764; }
-        .admin-notice { background-color: rgba(22,33,53,0.7); border-left: 4px solid #3b82f6; padding: 1em; margin-bottom: 1.5em; }
-        .message { padding: 1em; margin-top: 1em; border-radius: 10px; }
-        .success { background-color: rgba(6,78,59,0.5); color: #a7f3d0; border: 1px solid #10b981; box-shadow: 0 0 12px rgba(16,185,129,0.2); }
-        .error { background-color: rgba(63,29,31,0.5); color: #fecaca; border: 1px solid #ef4444; box-shadow: 0 0 12px rgba(239,68,68,0.2); }
-        .help { background: rgba(22,33,53,0.65); border: 1px solid rgba(59,130,246,0.35); color: #cfe0ff; padding: 12px; border-radius: 12px; margin-bottom: 16px; }
-        .help ul { margin: 8px 0 0; padding-left: 16px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --secondary: #8b5cf6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --info: #3b82f6;
+            --border: rgba(148, 163, 184, 0.1);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        /* Navigation */
+        .navbar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            background: rgba(30, 41, 59, 0.9);
+        }
+
+        .navbar-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .brand svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-left: 0.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .nav-links a:hover, .nav-links a.active {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+        }
+
+        .page-header {
+            margin-bottom: 2rem;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-header p {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        /* Info Alert */
+        .alert {
+            padding: 1rem 1.25rem;
+            border-radius: 0.75rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .alert svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            margin-top: 0.125rem;
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid var(--info);
+            color: var(--info);
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid var(--warning);
+            color: var(--warning);
+        }
+
+        .alert-content strong {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+
+        /* File List */
+        .file-grid {
+            display: grid;
+            gap: 0.75rem;
+        }
+
+        .file-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        .file-item:hover {
+            border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: var(--shadow);
+        }
+
+        .file-item.admin-file {
+            border-left: 3px solid var(--warning);
+            background: rgba(245, 158, 11, 0.05);
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .file-icon svg {
+            width: 24px;
+            height: 24px;
+            color: white;
+        }
+
+        .file-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.9375rem;
+            margin-bottom: 0.25rem;
+            word-break: break-word;
+        }
+
+        .file-path {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            font-family: 'Courier New', monospace;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1.25rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-tertiary);
+            filter: brightness(1.1);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+        }
+
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            opacity: 0.5;
+        }
+
+        .empty-state h2 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state p {
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar-content {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .file-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .file-actions {
+                width: 100%;
+            }
+
+            .btn {
+                flex: 1;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="wrap">
-    <div class="navbar">
-        <div><span class="brand">NAS Dashboard</span> <span class="badge">{{ 'Admin' if is_admin else 'Client' }}</span></div>
-        <div class="nav-links">
-            <a href="/">Dashboard</a>
-            <a href="/versions">Versions</a>
-            <a href="/logout">Déconnexion</a>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-content">
+            <div class="brand">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"/>
+                    <path d="M7 8h10v8H7z" opacity="0.5"/>
+                </svg>
+                <span>NAS Dashboard <span class="badge">{{ 'Admin' if is_admin else 'Client' }}</span></span>
+            </div>
+            <div class="nav-links">
+                <a href="/">Accueil</a>
+                <a href="/restore" class="active">Fichiers</a>
+                <a href="/versions">Versions</a>
+                <a href="/logout">Déconnexion</a>
+            </div>
         </div>
-    </div>
+    </nav>
+
+    <!-- Main Content -->
     <div class="container">
-        <h1>Fichiers sauvegardés pour {{ username }}</h1>
-        <div class="help">
-            <strong>Restauration simple :</strong>
-            <ul>
-                <li>Cliquer « Télécharger » pour récupérer le fichier en clair.</li>
-                <li>Pour restaurer une version précise, allez dans « Versions ».</li>
-                <li>Les actions d’administration incluent la suppression définitive.</li>
-            </ul>
+        <div class="page-header">
+            <h1>Mes Fichiers</h1>
+            <p>Téléchargez vos fichiers sauvegardés en toute sécurité</p>
         </div>
 
+        <!-- Breadcrumb Navigation -->
+        {% if breadcrumb or current_path %}
+        <div style="margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <a href="{{ url_for('restore_page') }}" style="color: var(--primary); text-decoration: none; display: flex; align-items: center; gap: 0.25rem; padding: 0.5rem 0.75rem; background: var(--bg-card); border-radius: 0.5rem; transition: all 0.2s;">
+                <svg style="width: 16px; height: 16px;" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                </svg>
+                Racine
+            </a>
+            {% for item in breadcrumb %}
+            <span style="color: var(--text-muted);">/</span>
+            <a href="{{ url_for('restore_page', current_path=item.path) }}" style="color: var(--text-secondary); text-decoration: none; padding: 0.5rem 0.75rem; background: var(--bg-card); border-radius: 0.5rem; transition: all 0.2s;">
+                {{ item.name }}
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Search Bar -->
+        {% if folders or files %}
+        <div style="margin-bottom: 1.5rem;">
+            <div style="position: relative;">
+                <input type="text" id="searchInput" placeholder="Rechercher un fichier ou dossier..." style="width: 100%; padding: 0.75rem 1rem 0.75rem 2.5rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 0.5rem; color: var(--text-primary); font-size: 0.9375rem;" />
+                <svg style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); width: 20px; height: 20px; color: var(--text-muted);" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                </svg>
+            </div>
+            <div id="searchResults" style="margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-muted);"></div>
+        </div>
+        {% endif %}
+
+        <!-- Messages -->
         {% if message %}
-            <div class="message {{ 'success' if 'Supprimé' in message or 'Succès' in message else 'error' }}">
+        <div class="alert {{ 'alert-success' if 'Succès' in message or 'Supprimé' in message else 'alert-danger' }}">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                {% if 'Succès' in message or 'Supprimé' in message %}
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/>
+                {% else %}
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                {% endif %}
+            </svg>
+            <div class="alert-content">
                 <strong>{{ message }}</strong>
             </div>
+        </div>
         {% endif %}
 
+        <!-- Admin Info -->
         {% if is_admin %}
-            <p class="admin-notice"><strong>Vue Administrateur :</strong> Vous voyez les fichiers de tous les utilisateurs. Les fichiers des autres utilisateurs sont surlignés.</p>
+        <div class="alert alert-warning">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+            </svg>
+            <div class="alert-content">
+                <strong>Mode Administrateur</strong>
+                Vous visualisez tous les fichiers du système. Les fichiers des autres utilisateurs sont marqués d'une bordure orange.
+            </div>
+        </div>
         {% endif %}
 
+        <!-- Help Info -->
+        <div class="alert alert-info">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+            </svg>
+            <div class="alert-content">
+                <strong>Comment télécharger vos fichiers ?</strong>
+                Cliquez sur "Télécharger" pour récupérer le fichier déchiffré. Pour restaurer une ancienne version, rendez-vous dans la section "Versions".
+            </div>
+        </div>
+
+        <!-- Folders -->
+        {% if folders %}
+        <h2 style="color: var(--text-primary); margin-bottom: 1rem; margin-top: 1rem; font-size: 1.5rem;">Dossiers</h2>
+        <div class="file-grid">
+            {% for folder in folders %}
+            <div class="file-item {{ 'admin-file' if is_admin else '' }}" style="cursor: pointer;">
+                <a href="{{ url_for('restore_page', current_path=(current_path + '/' + folder if current_path else folder)) }}" style="text-decoration: none; color: inherit; flex: 1; display: flex; align-items: center;">
+                    <div class="file-info" style="flex: 1;">
+                        <div class="file-icon" style="background: linear-gradient(135deg, var(--warning), #d97706);">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+                            </svg>
+                        </div>
+                        <div class="file-details">
+                            <div class="file-name">{{ folder }}</div>
+                            <div class="file-path">Dossier</div>
+                        </div>
+                    </div>
+                </a>
+                <div class="file-actions">
+                    <form method="post" action="{{ url_for('delete_folder_route') }}" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce dossier et tout son contenu définitivement ?');">
+                        <input type="hidden" name="folderpath" value="{{ (current_path + '/' + folder if current_path else folder) }}" />
+                        <input type="hidden" name="current_path" value="{{ current_path }}" />
+                        <button type="submit" class="btn btn-danger">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                            </svg>
+                            Supprimer
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- File List -->
         {% if files %}
-            <ul>
-                {% for file in files %}
-                    {# Ajoute la classe 'admin-view' si c'est l'admin et que le chemin contient un / (ex: 'user/fichier.txt') #}
-                    <li class="{{ 'admin-view' if is_admin and '/' in file else '' }}">
-                        <span>{{ file }}</span>
-                        {# Le lien de téléchargement utilise 'filepath' comme défini dans la route Python #}
-                        <a href="{{ url_for('download_file', filepath=file) }}" class="download-link">
-                            <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3v10.586l3.293-3.293 1.414 1.414L12 17.414l-4.707-4.707 1.414-1.414L12 13.586V3z"></path><path d="M5 19h14v2H5z"></path></svg>
-                            Télécharger
-                        </a>
-                        {% if is_admin %}
-                        <form method="post" action="{{ url_for('delete_file_route') }}" style="display:inline;">
-                            <input type="hidden" name="filepath" value="{{ file }}" />
-                            <button type="submit" class="delete-button">
-                                <svg class="icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M9 3h6l1 2h5v2H3V5h5l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9z"></path></svg>
-                                Supprimer
-                            </button>
-                        </form>
+        <h2 style="color: var(--text-primary); margin-bottom: 1rem; margin-top: 2rem; font-size: 1.5rem;">Fichiers</h2>
+        <div class="file-grid">
+            {% for file in files %}
+            {% set full_path = (current_path + '/' + file if current_path else file) %}
+            <div class="file-item {{ 'admin-file' if is_admin and '/' in full_path else '' }}">
+                <div class="file-info">
+                    <div class="file-icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+                        </svg>
+                    </div>
+                    <div class="file-details">
+                        <div class="file-name">{{ file }}</div>
+                        {% if current_path %}
+                        <div class="file-path">{{ full_path }}</div>
                         {% endif %}
-                    </li>
-                {% endfor %}
-            </ul>
-        {% else %}
-            <p>Aucun fichier trouvé sur le serveur de stockage.</p>
+                    </div>
+                </div>
+                <div class="file-actions">
+                    <a href="{{ url_for('download_file', filepath=full_path) }}" class="btn btn-primary">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/>
+                        </svg>
+                        Télécharger
+                    </a>
+                    <form method="post" action="{{ url_for('delete_file_route') }}" style="display:inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce fichier définitivement ?');">
+                        <input type="hidden" name="filepath" value="{{ full_path }}" />
+                        <input type="hidden" name="current_path" value="{{ current_path }}" />
+                        <button type="submit" class="btn btn-danger">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                            </svg>
+                            Supprimer
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
         {% endif %}
 
-        <a href="{{ url_for('index') }}" class="nav-link">Retour au Dashboard</a>
+        {% if not files and not folders %}
+        <!-- Empty State -->
+        <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/>
+            </svg>
+            <h2>Aucun fichier trouvé</h2>
+            <p>Votre espace de stockage est vide. Commencez par uploader des fichiers depuis la page d'accueil.</p>
+            <a href="/" class="btn btn-primary">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/>
+                </svg>
+                Uploader des fichiers
+            </a>
+        </div>
+        {% endif %}
     </div>
-    </div>
+
+    <script>
+        // Recherche globale avec API
+        const searchInput = document.getElementById('searchInput');
+        const searchResults = document.getElementById('searchResults');
+        let searchTimeout = null;
+
+        // Créer un conteneur pour les résultats de recherche globale
+        const globalSearchContainer = document.createElement('div');
+        globalSearchContainer.id = 'globalSearchResults';
+        globalSearchContainer.style.cssText = 'margin-top: 1rem; display: none;';
+        if (searchResults) {
+            searchResults.parentElement.appendChild(globalSearchContainer);
+        }
+
+        if (searchInput) {
+            searchInput.addEventListener('input', function(e) {
+                const searchTerm = e.target.value.trim();
+
+                // Annuler la recherche précédente
+                if (searchTimeout) clearTimeout(searchTimeout);
+
+                // Sélectionner tous les éléments locaux
+                const folderItems = document.querySelectorAll('.file-grid .file-item');
+
+                if (searchTerm === '' || searchTerm.length < 2) {
+                    // Réinitialiser l'affichage
+                    folderItems.forEach(item => item.style.display = '');
+                    searchResults.textContent = '';
+                    globalSearchContainer.style.display = 'none';
+                    globalSearchContainer.innerHTML = '';
+                    return;
+                }
+
+                // Recherche locale
+                let localCount = 0;
+                folderItems.forEach(item => {
+                    const fileName = item.querySelector('.file-name');
+                    const filePath = item.querySelector('.file-path');
+                    if (fileName) {
+                        const nameText = fileName.textContent.toLowerCase();
+                        const pathText = filePath ? filePath.textContent.toLowerCase() : '';
+                        if (nameText.includes(searchTerm.toLowerCase()) || pathText.includes(searchTerm.toLowerCase())) {
+                            item.style.display = '';
+                            localCount++;
+                        } else {
+                            item.style.display = 'none';
+                        }
+                    }
+                });
+
+                // Recherche globale via API (debounce 300ms)
+                searchTimeout = setTimeout(() => {
+                    fetch(`/api/search?q=${encodeURIComponent(searchTerm)}`)
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.length === 0) {
+                                searchResults.textContent = localCount > 0
+                                    ? `${localCount} résultat(s) dans ce dossier`
+                                    : 'Aucun résultat trouvé';
+                                globalSearchContainer.style.display = 'none';
+                                return;
+                            }
+
+                            // Afficher résultats locaux + globaux
+                            searchResults.textContent = localCount > 0
+                                ? `${localCount} résultat(s) ici • ${data.length} dans tous les dossiers`
+                                : `${data.length} résultat(s) dans d'autres dossiers`;
+
+                            // Créer liste de résultats cliquables
+                            globalSearchContainer.innerHTML = '<div style="margin-top: 0.5rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem;">📂 Fichiers dans d\'autres dossiers :</div>';
+                            const resultsList = document.createElement('div');
+                            resultsList.style.cssText = 'display: grid; gap: 0.5rem;';
+
+                            data.forEach(result => {
+                                const resultItem = document.createElement('a');
+                                resultItem.href = `/restore/${result.folder}`;
+                                resultItem.style.cssText = `
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 0.75rem;
+                                    padding: 0.75rem;
+                                    background: var(--bg-card);
+                                    border: 1px solid var(--border);
+                                    border-radius: 0.5rem;
+                                    text-decoration: none;
+                                    color: var(--text-primary);
+                                    transition: all 0.2s ease;
+                                `;
+                                resultItem.onmouseover = function() {
+                                    this.style.borderColor = 'var(--primary)';
+                                    this.style.transform = 'translateX(4px)';
+                                };
+                                resultItem.onmouseout = function() {
+                                    this.style.borderColor = 'var(--border)';
+                                    this.style.transform = 'none';
+                                };
+
+                                resultItem.innerHTML = `
+                                    <svg style="width: 20px; height: 20px; flex-shrink: 0; color: var(--primary);" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+                                    </svg>
+                                    <div style="flex: 1; min-width: 0;">
+                                        <div style="font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${result.filename}</div>
+                                        <div style="font-size: 0.8125rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${result.folder || 'Racine'}</div>
+                                    </div>
+                                    <svg style="width: 16px; height: 16px; flex-shrink: 0; color: var(--text-muted);" viewBox="0 0 24 24" fill="currentColor">
+                                        <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+                                    </svg>
+                                `;
+                                resultsList.appendChild(resultItem);
+                            });
+
+                            globalSearchContainer.appendChild(resultsList);
+                            globalSearchContainer.style.display = 'block';
+                        })
+                        .catch(err => {
+                            console.error('Erreur recherche:', err);
+                            searchResults.textContent = 'Erreur lors de la recherche';
+                        });
+                }, 300);
+            });
+        }
+    </script>
 </body>
 </html>

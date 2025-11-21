@@ -2,115 +2,332 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Connexion au NAS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - NAS Dashboard</title>
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         :root {
-            --bg1: #0b0a1a;
-            --bg2: #12122a;
-            --bg3: #1b1c3a;
-            --violet: #8b5cf6;
-            --violet-d: #7c3aed;
-            --blue: #3b82f6;
-            --text: #e5e7eb;
-            --muted: #a1a1aa;
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --secondary: #8b5cf6;
+            --danger: #ef4444;
+            --border: rgba(148, 163, 184, 0.1);
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
         }
-        html, body { height: 100%; }
+
         body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: radial-gradient(1200px 600px at 10% 10%, #100b2a 0%, transparent 40%),
-                        radial-gradient(1000px 500px at 90% 20%, #0f1b3f 0%, transparent 45%),
-                        linear-gradient(135deg, var(--bg1) 0%, var(--bg2) 40%, var(--bg3) 100%);
-            position: relative;
-            overflow: hidden;
+            padding: 1.5rem;
+            line-height: 1.6;
         }
-        body::before {
-            content: "";
-            position: absolute;
-            inset: -20% -20% -20% -20%;
-            background: radial-gradient(600px 300px at 20% 80%, rgba(139,92,246,0.25) 0%, transparent 60%),
-                        radial-gradient(500px 250px at 80% 30%, rgba(59,130,246,0.2) 0%, transparent 60%);
-            filter: blur(60px);
-            z-index: 0;
-            pointer-events: none;
+
+        .login-container {
+            width: 100%;
+            max-width: 420px;
         }
-        .wrap { width: 100%; max-width: 420px; padding: 24px; z-index: 1; }
-        .brand { text-align: center; color: var(--violet); margin-bottom: 18px; font-weight: 700; letter-spacing: .5px; font-size: 18px; }
-        .card {
-            background: rgba(24, 20, 50, 0.6);
-            border: 1px solid rgba(139, 92, 246, 0.18);
-            border-radius: 16px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.45);
-            backdrop-filter: blur(10px);
-            padding: 28px;
+
+        .logo-section {
             text-align: center;
+            margin-bottom: 2rem;
         }
-        h1 { margin: 0 0 8px; font-size: 22px; }
-        form { display: flex; flex-direction: column; align-items: center; }
-        label { display: block; width: min(92%, 380px); margin: 14px auto 8px; text-align: left; }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .logo svg {
+            width: 40px;
+            height: 40px;
+            color: var(--primary);
+            -webkit-text-fill-color: initial;
+        }
+
+        .logo-subtitle {
+            color: var(--text-muted);
+            font-size: 0.9375rem;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 2.5rem;
+            box-shadow: var(--shadow-lg);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
         input {
-            width: min(92%, 380px);
-            padding: 10px 12px;
-            border-radius: 10px;
-            border: 1px solid rgba(124, 58, 237, 0.35);
-            background: rgba(27, 23, 59, 0.85);
-            color: var(--text);
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.2s ease;
+        }
+
+        input:focus {
             outline: none;
-            margin: 0 auto;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            background: rgba(51, 65, 85, 0.8);
         }
-        input:focus { border-color: var(--violet); box-shadow: 0 0 0 3px rgba(139,92,246,0.2); }
-        button {
-            width: min(92%, 380px);
-            margin: 18px auto 0;
-            padding: 12px;
+
+        input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.875rem 1.5rem;
             border: none;
-            border-radius: 10px;
-            background: linear-gradient(90deg, var(--violet), var(--blue));
-            color: #fff;
+            border-radius: 0.5rem;
             font-weight: 600;
+            font-size: 1rem;
             cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
         }
-        button:hover { filter: brightness(1.08); }
-        .error {
-            width: min(92%, 380px);
-            margin: 12px auto 0;
-            padding: 10px;
-            border-radius: 10px;
-            background: rgba(239, 68, 68, 0.12);
-            color: #ffb3b3;
-            border: 1px solid rgba(239, 68, 68, 0.25);
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
         }
-        .hint { width: min(92%, 380px); margin: 10px auto 0; color: var(--muted); font-size: 13px; text-align: center; }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .error-message svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .hint {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.8125rem;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .hint-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        .hint-icon svg {
+            width: 16px;
+            height: 16px;
+            color: var(--primary);
+        }
+
+        /* Loading state */
+        .btn.loading {
+            pointer-events: none;
+            opacity: 0.7;
+        }
+
+        .btn.loading::after {
+            content: "";
+            width: 16px;
+            height: 16px;
+            border: 2px solid white;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin-left: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .card {
+                padding: 2rem 1.5rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .logo {
+                font-size: 1.5rem;
+            }
+        }
     </style>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🔐</text></svg>">
 </head>
 <body>
-    <div class="wrap">
-        <div class="brand">NAS Dashboard</div>
+    <div class="login-container">
+        <div class="logo-section">
+            <div class="logo">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>
+                    <path d="M10 17l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z" opacity="0.6"/>
+                </svg>
+                NAS Dashboard
+            </div>
+            <div class="logo-subtitle">Système de stockage sécurisé</div>
+        </div>
+
         <div class="card">
             <h1>Connexion</h1>
+            <p class="subtitle">Accédez à votre espace de stockage personnel</p>
 
             {% if error %}
-                <div class="error">{{ error }}</div>
+            <div class="error-message">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+                <span>{{ error }}</span>
+            </div>
             {% endif %}
 
-            <form method="post" action="{{ url_for('login') }}">
-                <label for="username">Nom d'utilisateur</label>
-                <input id="username" name="username" type="text" required autocomplete="username" />
+            <form method="post" action="{{ url_for('login') }}" id="loginForm">
+                <div class="form-group">
+                    <label for="username">Nom d'utilisateur</label>
+                    <input
+                        id="username"
+                        name="username"
+                        type="text"
+                        required
+                        autocomplete="username"
+                        placeholder="Entrez votre identifiant"
+                        autofocus
+                    />
+                </div>
 
-                <label for="password">Mot de passe</label>
-                <input id="password" name="password" type="password" required autocomplete="current-password" />
+                <div class="form-group">
+                    <label for="password">Mot de passe</label>
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        required
+                        autocomplete="current-password"
+                        placeholder="Entrez votre mot de passe"
+                    />
+                </div>
 
-                <button type="submit">Se connecter</button>
+                <button type="submit" class="btn" id="submitBtn">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                    </svg>
+                    Se connecter
+                </button>
             </form>
 
-            <p class="hint">Chaque utilisateur LDAP a son espace dédié sur le NAS.</p>
+            <div class="hint">
+                <div class="hint-icon">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                    </svg>
+                    Authentification via LDAP - Chaque utilisateur dispose de son espace dédié
+                </div>
+            </div>
         </div>
     </div>
+
+    <script>
+        const form = document.getElementById('loginForm');
+        const submitBtn = document.getElementById('submitBtn');
+
+        form.addEventListener('submit', function() {
+            submitBtn.classList.add('loading');
+            submitBtn.disabled = true;
+        });
+    </script>
 </body>
 </html>
