@@ -1,0 +1,187 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Gestion Utilisateurs{% endblock %}
+{% block header_title %}Utilisateurs LDAP{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Liste des Utilisateurs</h3>
+        <button class="btn btn-primary btn-sm" onclick="openAddUserModal()">
+            + Nouvel Utilisateur
+        </button>
+    </div>
+
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Utilisateur</th>
+                    <th>Contact</th>
+                    <th>Détails Techniques</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div class="user-avatar" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                {{ user.uid[0]|upper }}
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; color: var(--text-primary);">{{ user.cn }}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-muted);">@{{ user.uid }}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>
+                        <div style="font-size: 0.9rem;">{{ user.mail or 'Non renseigné' }}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">ID: {{ user.employeeNumber or 'N/A' }}
+                        </div>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <span class="badge badge-info" title="Groupe Principal">GID: 1000</span>
+                            <span class="badge badge-secondary" title="Répertoire Home">/home/{{ user.uid }}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn btn-ghost btn-sm" style="color: var(--primary-blue);"
+                                onclick="viewUserDetails('{{ user.uid }}')" title="Voir les détails">
+                                <i data-lucide="eye" size="16"></i>
+                                Détails
+                            </button>
+                            <button class="btn btn-ghost btn-sm" style="color: var(--danger);"
+                                onclick="deleteUser('{{ user.uid }}')" title="Supprimer l'utilisateur">
+                                <i data-lucide="trash-2" size="16"></i>
+                                Supprimer
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="text-align: center; color: var(--text-muted); padding: var(--spacing-xl);">
+                        Aucun utilisateur trouvé
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Ajout Utilisateur -->
+<div id="addUserModal" class="sidebar-overlay"
+    style="z-index: 200; display: none; align-items: center; justify-content: center;">
+    <div class="card" style="width: 100%; max-width: 500px; margin: 20px;">
+        <div class="card-header">
+            <h3 class="card-title">Ajouter un utilisateur</h3>
+            <button class="btn btn-ghost" onclick="closeAddUserModal()">✕</button>
+        </div>
+        <form id="addUserForm" onsubmit="submitAddUser(event)">
+            <div class="input-group">
+                <label class="form-label">Identifiant (UID)</label>
+                <input type="text" name="uid" class="form-control" required placeholder="ex: jdupont">
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md);">
+                <div class="input-group">
+                    <label class="form-label">Prénom</label>
+                    <input type="text" name="givenName" class="form-control" required>
+                </div>
+                <div class="input-group">
+                    <label class="form-label">Nom</label>
+                    <input type="text" name="sn" class="form-control" required>
+                </div>
+            </div>
+            <div class="input-group">
+                <label class="form-label">Email</label>
+                <input type="email" name="mail" class="form-control" placeholder="jean.dupont@example.com">
+            </div>
+            <div class="input-group">
+                <label class="form-label">Mot de passe</label>
+                <input type="password" name="password" class="form-control" required>
+            </div>
+            <div class="input-group">
+                <label class="form-label">Numéro Employé</label>
+                <input type="text" name="employeeNumber" class="form-control">
+            </div>
+            <div
+                style="display: flex; justify-content: flex-end; gap: var(--spacing-md); margin-top: var(--spacing-lg);">
+                <button type="button" class="btn btn-secondary" onclick="closeAddUserModal()">Annuler</button>
+                <button type="submit" class="btn btn-primary">Créer l'utilisateur</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openAddUserModal() {
+        const modal = document.getElementById('addUserModal');
+        modal.style.display = 'flex';
+        setTimeout(() => modal.style.opacity = '1', 10);
+    }
+
+    function closeAddUserModal() {
+        const modal = document.getElementById('addUserModal');
+        modal.style.opacity = '0';
+        setTimeout(() => modal.style.display = 'none', 300);
+    }
+
+    async function submitAddUser(e) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+
+        try {
+            const res = await fetch('/admin/users/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+
+            if (result.success) {
+                location.reload();
+            } else {
+                alert('Erreur: ' + result.error);
+            }
+        } catch (err) {
+            alert('Erreur réseau');
+        }
+    }
+
+    async function deleteUser(uid) {
+        if (!confirm('⚠️ ATTENTION ⚠️\n\nVoulez-vous vraiment supprimer l\'utilisateur "' + uid + '" ?\n\nCette action est irréversible et supprimera :\n- Le compte utilisateur\n- Tous ses fichiers\n- Toutes ses clés de chiffrement\n\nConfirmez-vous la suppression ?')) return;
+
+        try {
+            const res = await fetch('/admin/users/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid })
+            });
+            const result = await res.json();
+
+            if (result.success) {
+                alert('✓ Utilisateur "' + uid + '" supprimé avec succès.');
+                location.reload();
+            } else {
+                alert('❌ Erreur: ' + result.error);
+            }
+        } catch (err) {
+            alert('❌ Erreur réseau lors de la suppression');
+        }
+    }
+
+    function viewUserDetails(uid) {
+        // Fonction pour afficher les détails de l'utilisateur (à implémenter selon vos besoins)
+        alert('📋 Détails de l\'utilisateur: ' + uid + '\n\nFonctionnalité à venir:\n- Statistiques d\'utilisation\n- Historique des connexions\n- Appareils enregistrés\n- Fichiers stockés');
+    }
+</script>
+{% endblock %}

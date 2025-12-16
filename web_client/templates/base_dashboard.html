@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CernCloud Admin{% endblock %}</title>
+
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <!-- CSS Global -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global-theme.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard-layout.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard-components.css') }}">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- CSS Spécifique -->
+    {% block extra_css %}{% endblock %}
+
+    <!-- Favicon -->
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>">
+</head>
+
+<body>
+    <div class="dashboard-wrapper">
+        <!-- Fixed Header -->
+        <header class="dashboard-header glass">
+            <div class="header-left">
+                <button class="btn btn-ghost mobile-menu-btn" onclick="toggleSidebar()" style="display: none;">
+                    <i data-lucide="menu"></i>
+                </button>
+                <div class="brand-logo">
+                    <div class="logo-icon">
+                        <i data-lucide="shield-check" color="#0070F3"></i>
+                    </div>
+                    <span class="brand-text">CernCloud<span style="color: var(--primary-blue);">.Nas</span></span>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <!-- Notifications (Mock) -->
+                <button class="btn btn-ghost btn-icon" style="position: relative;">
+                    <i data-lucide="bell"></i>
+                    <span
+                        style="position: absolute; top: 8px; right: 8px; width: 8px; height: 8px; background: var(--danger); border-radius: 50%;"></span>
+                </button>
+
+                <!-- User Profile -->
+                <div class="header-user" onclick="toggleUserMenu(event)">
+                    <div class="user-info">
+                        <div class="user-name">{{ username }}</div>
+                        <div class="user-role">{{ 'Administrateur' if is_admin else 'Utilisateur' }}</div>
+                    </div>
+                    <div class="user-avatar">
+                        {{ username[0]|upper if username else 'U' }}
+                    </div>
+                    <i data-lucide="chevron-down" size="16" style="color: var(--text-muted);"></i>
+                </div>
+
+                <!-- Dropdown Menu -->
+                <div class="profile-dropdown glass" id="profileDropdown">
+                    <a href="/" class="dropdown-item">
+                        <i data-lucide="layout-dashboard" size="18"></i>
+                        <span>Tableau de bord</span>
+                    </a>
+                    <a href="/logout" class="dropdown-item text-danger">
+                        <i data-lucide="log-out" size="18"></i>
+                        <span>Déconnexion</span>
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Fixed Sidebar -->
+        <aside class="sidebar glass" id="sidebar">
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">ESPACE PERSONNEL</div>
+
+                <a href="/" class="nav-item {% if request.path == '/' %}active{% endif %}">
+                    <i data-lucide="layout-grid"></i>
+                    <span class="nav-text">Vue d'ensemble</span>
+                    {% if request.path == '/' %}<div class="active-indicator"></div>{% endif %}
+                </a>
+
+                <a href="/restore" class="nav-item {% if '/restore' in request.path %}active{% endif %}">
+                    <i data-lucide="folder-open"></i>
+                    <span class="nav-text">Mes Fichiers</span>
+                    {% if '/restore' in request.path %}<div class="active-indicator"></div>{% endif %}
+                </a>
+
+                <a href="/versions" class="nav-item {% if '/versions' in request.path %}active{% endif %}">
+                    <i data-lucide="history"></i>
+                    <span class="nav-text">Historique</span>
+                    {% if '/versions' in request.path %}<div class="active-indicator"></div>{% endif %}
+                </a>
+
+                <a href="/my-logs" class="nav-item {% if '/my-logs' in request.path %}active{% endif %}">
+                    <i data-lucide="file-text"></i>
+                    <span class="nav-text">Mes Logs</span>
+                    {% if '/my-logs' in request.path %}<div class="active-indicator"></div>{% endif %}
+                </a>
+
+                <a href="/devices-management"
+                    class="nav-item {% if '/devices-management' in request.path %}active{% endif %}">
+                    <i data-lucide="smartphone"></i>
+                    <span class="nav-text">Connexion appareil</span>
+                    {% if '/devices-management' in request.path %}<div class="active-indicator"></div>{% endif %}
+                </a>
+
+                {% if is_admin %}
+                <div class="nav-section-title">ADMINISTRATION</div>
+
+                <a href="/admin/users" class="nav-item {% if '/admin/users' in request.path %}active{% endif %}">
+                    <i data-lucide="users"></i>
+                    <span class="nav-text">Utilisateurs</span>
+                    {% if '/admin/users' in request.path %}<div class="active-indicator"></div>{% endif %}
+                </a>
+
+                <a href="/admin/security" class="nav-item {% if '/admin/security' in request.path %}active{% endif %}">
+                    <i data-lucide="shield-alert"></i>
+                    <span class="nav-text">Sécurité</span>
+                    {% if '/admin/security' in request.path %}<div class="active-indicator"></div>{% endif %}
+                </a>
+
+                <a href="/admin/logs" class="nav-item {% if '/admin/logs' in request.path %}active{% endif %}">
+                    <i data-lucide="activity"></i>
+                    <span class="nav-text">Logs & Audit</span>
+                    {% if '/admin/logs' in request.path %}<div class="active-indicator"></div>{% endif %}
+                </a>
+                {% endif %}
+            </nav>
+
+            <!-- Storage Widget (Bottom) -->
+            <div class="sidebar-footer">
+                <div class="storage-info">
+                    <div class="flex-between mb-md">
+                        <span class="text-muted" style="font-size: 12px;">Stockage</span>
+                        <span style="font-size: 12px; font-weight: 600;">{{ storage_percent|default(0)|round }}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: {{ storage_percent|default(0) }}%;"></div>
+                    </div>
+                    <div class="mt-md text-muted" style="font-size: 11px;">
+                        {{ storage_used_mb|default(0) }} MB / {{ storage_limit_gb|default(50) }} GB
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Overlay mobile -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="page-header-wrapper">
+                <h1 class="page-title">{% block header_title %}{% endblock %}</h1>
+                <div class="page-actions">
+                    {% block header_actions %}{% endblock %}
+                </div>
+            </div>
+
+            {% if message %}
+            {% set is_danger = '🔴' in message or 'MODE EXPERT' in message or 'supprimé' in message.lower() or 'erreur'
+            in message.lower() or 'critique' in message.lower() or 'attention' in message.lower() %}
+            {% set is_warning = '⚠' in message and not is_danger %}
+            {% set is_success = '✅' in message %}
+            <div
+                class="alert {% if is_danger %}alert-danger{% elif is_warning %}alert-warning{% elif is_success %}alert-success{% else %}alert-info{% endif %} glass">
+                <i
+                    data-lucide="{% if is_danger %}alert-triangle{% elif is_warning %}alert-circle{% elif is_success %}check-circle{% else %}info{% endif %}"></i>
+                <span>{{ message }}</span>
+            </div>
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/device_fingerprint.js') }}"></script>
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (window.innerWidth <= 1024) {
+                sidebar.classList.toggle('mobile-open');
+                overlay.classList.toggle('active');
+            }
+        }
+
+        function closeSidebar() {
+            document.getElementById('sidebar').classList.remove('mobile-open');
+            document.getElementById('sidebarOverlay').classList.remove('active');
+        }
+
+        function toggleUserMenu(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('profileDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        document.addEventListener('click', () => {
+            const dropdown = document.getElementById('profileDropdown');
+            if (dropdown) dropdown.classList.remove('show');
+        });
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 1024) {
+                closeSidebar();
+            } else {
+                const btn = document.querySelector('.mobile-menu-btn');
+                if (btn) btn.style.display = 'block';
+            }
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+
+</html>

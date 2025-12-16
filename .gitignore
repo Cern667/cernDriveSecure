@@ -1,34 +1,70 @@
-# Secrets
-.env
-*.env
-
-# Cles utilisateurs (JAMAIS commit)
-user_keys/
-
-# Fichiers stockes (donnees utilisateurs)
-storage/
-
-# Fichiers temporaires
-temp_uploads/
-temp_downloads/
-
 # Python
-venv/
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# IDE
-.idea/
+# Virtual Environment
+venv/
+ENV/
+env/
+.venv
+
+# IDEs
 .vscode/
-*.code-workspace
-
-# OS
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
-Thumbs.db
+
+# Docker
+.dockerignore
+
+# Data & Storage
+user_keys/*/
+!user_keys/.gitkeep
+storage/*/
+!storage/.gitkeep
+data/
+temp_downloads/
+temp_uploads/
+ldap/data/
+ldap/config/
+cookies.txt
 
 # Logs
 *.log
+logs/
 
-# Docker volumes locaux
-ldap/
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+*~

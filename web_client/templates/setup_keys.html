@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuration Zero-Knowledge - CernCloud.Nas</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global-theme.css') }}">
+
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: var(--spacing-lg);
+        }
+
+        .setup-container {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 48px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: var(--shadow-lg);
+            text-align: center;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .brand-logo i {
+            color: var(--primary-blue);
+        }
+
+        .brand-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-header);
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            color: var(--text-header);
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            margin-bottom: var(--spacing-xl);
+            font-size: 15px;
+        }
+
+        .info-box {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            margin-bottom: var(--spacing-lg);
+            text-align: left;
+        }
+
+        .info-box h3 {
+            color: var(--primary-blue);
+            margin-bottom: var(--spacing-md);
+            font-size: 14px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .info-box ul {
+            list-style: none;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .info-box li {
+            padding: 6px 0;
+            padding-left: 24px;
+            position: relative;
+        }
+
+        .info-box li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--primary-blue);
+            font-weight: bold;
+        }
+
+        .warning-box {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+            font-size: 13px;
+            color: #FCD34D;
+            text-align: left;
+        }
+
+        .warning-box strong {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
+            font-size: 14px;
+        }
+
+        .password-input {
+            margin-bottom: var(--spacing-lg);
+            text-align: left;
+        }
+
+        .password-input label {
+            display: block;
+            margin-bottom: var(--spacing-sm);
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .password-input input {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            background: var(--bg-input);
+            color: white;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all var(--transition-fast);
+        }
+
+        .password-input input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.2);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 15px 40px;
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-blue-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 112, 243, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            margin-top: var(--spacing-lg);
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--primary-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .result {
+            margin-top: var(--spacing-lg);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result.success-bg {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6EE7B7;
+        }
+
+        .result.error-bg {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #FCA5A5;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: var(--spacing-md);
+            display: none;
+        }
+
+        .progress-bar.active {
+            display: block;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-blue), var(--primary-blue-hover));
+            transition: width 0.3s;
+        }
+
+        .success {
+            color: #6EE7B7;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="setup-container">
+        <div class="brand-logo">
+            <i data-lucide="shield-check" size="32"></i>
+            <span class="brand-text">CernCloud<span style="color: var(--primary-blue);">.Nas</span></span>
+        </div>
+
+        <h1>Configuration Zero-Knowledge</h1>
+        <p class="subtitle">Bienvenue <strong>{{ username }}</strong> ! Première connexion détectée.</p>
+
+        <div class="info-box">
+            <h3><i data-lucide="zap" size="16"></i> Qu'est-ce qui va se passer ?</h3>
+            <ul>
+                <li>Génération de clés de chiffrement dans votre navigateur</li>
+                <li>Votre clé privée sera chiffrée avec votre mot de passe</li>
+                <li>Le serveur ne connaîtra JAMAIS votre mot de passe ni votre clé privée</li>
+                <li>Vous pourrez accéder à vos fichiers depuis n'importe quel appareil</li>
+            </ul>
+        </div>
+
+        <div class="warning-box">
+            <strong><i data-lucide="alert-triangle" size="16"></i> Important : Mode Zero-Knowledge</strong>
+            Ce système offre une sécurité maximale : le serveur ne peut JAMAIS déchiffrer vos fichiers.
+            <br><br>
+            Pour accéder à vos fichiers depuis un nouvel appareil, vous devrez entrer votre mot de passe.
+            <strong>Si vous oubliez votre mot de passe, vos fichiers seront définitivement perdus.</strong>
+        </div>
+
+        <div class="password-input">
+            <label for="password">Créez un mot de passe de chiffrement :</label>
+            <input type="password" id="password" placeholder="Mot de passe fort recommandé" autocomplete="new-password">
+        </div>
+
+        <div class="password-input">
+            <label for="password-confirm">Confirmez le mot de passe :</label>
+            <input type="password" id="password-confirm" placeholder="Retapez votre mot de passe"
+                autocomplete="new-password">
+        </div>
+
+        <button id="generateBtn" class="btn-primary" onclick="generateAndSaveKeys()">
+            <i data-lucide="key" size="20"></i>
+            Générer mes clés de chiffrement
+        </button>
+
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill" style="width: 0;"></div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p id="loadingText" style="color: var(--text-secondary);">Génération en cours...</p>
+        </div>
+
+        <div class="result" id="result"></div>
+    </div>
+
+    <!-- Charger le module crypto -->
+    <script src="{{ url_for('static', filename='js/device_fingerprint.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/crypto_client.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/device_crypto.js') }}"></script>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        async function generateAndSaveKeys() {
+            const password = document.getElementById('password').value;
+            const passwordConfirm = document.getElementById('password-confirm').value;
+            const btn = document.getElementById('generateBtn');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const loadingText = document.getElementById('loadingText');
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+
+            // Validation
+            if (!password || !passwordConfirm) {
+                showResult('error', '❌ Veuillez remplir tous les champs');
+                return;
+            }
+
+            if (password !== passwordConfirm) {
+                showResult('error', '❌ Les mots de passe ne correspondent pas');
+                return;
+            }
+
+            if (password.length < 8) {
+                showResult('error', '❌ Le mot de passe doit contenir au minimum 8 caractères');
+                return;
+            }
+
+            // Démarrer
+            btn.disabled = true;
+            loading.classList.add('active');
+            result.classList.remove('show');
+            progressBar.classList.add('active');
+
+            try {
+                // Étape 1 : Générer empreinte appareil
+                updateProgress(10, 'Identification de l\'appareil...');
+                const deviceFingerprint = await DeviceFingerprint.generateSecure();
+                const deviceInfo = DeviceFingerprint.getDeviceInfo();
+
+                // Étape 2 : Générer la paire de clés
+                updateProgress(30, 'Génération de la paire de clés...');
+                const keyPair = await CryptoClient.generateX25519KeyPair();
+
+                // Étape 3 : Chiffrer la clé privée avec le mot de passe
+                updateProgress(50, 'Chiffrement de la clé privée...');
+                const { encryptedKey, salt, iv } = await CryptoClient.encryptPrivateKeyWithPassword(
+                    keyPair.privateKey,
+                    password
+                );
+
+                // Étape 4 : Générer clés Ed25519 de l'appareil
+                updateProgress(60, 'Génération clés appareil...');
+                const deviceKeyPair = await DeviceCrypto.generateDeviceKeyPair();
+                await DeviceCrypto.storeDeviceKeys(deviceKeyPair.privateKey, deviceKeyPair.publicKey);
+                const devicePubkeyEd25519 = await DeviceCrypto.exportDevicePublicKey();
+
+                // Étape 5 : Exporter la clé publique
+                updateProgress(75, 'Préparation de la clé publique...');
+                const publicKeyBase64 = await CryptoClient.exportPublicKeyToBase64(keyPair.publicKey);
+
+                // Étape 6 : Envoyer au serveur
+                updateProgress(90, 'Envoi au serveur...');
+                const response = await fetch('/generate-keys', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        encrypted_private_key: CryptoClient.arrayBufferToBase64(encryptedKey),
+                        salt: CryptoClient.arrayBufferToBase64(salt),
+                        iv: CryptoClient.arrayBufferToBase64(iv),
+                        public_key: publicKeyBase64,
+                        device_fingerprint: deviceFingerprint,
+                        device_info: deviceInfo,
+                        device_public_key_ed25519: devicePubkeyEd25519
+                    })
+                });
+
+                const data = await response.json();
+
+                updateProgress(100, 'Terminé !');
+                loading.classList.remove('active');
+                progressBar.classList.remove('active');
+
+                if (data.success) {
+                    showResult('success', `
+                        <p class="success">✅ Configuration réussie !</p>
+                        <p style="margin-top:15px;font-size:14px;color:var(--text-primary);">
+                            Votre système de chiffrement Zero-Knowledge est opérationnel.
+                        </p>
+                        <p style="margin-top:10px;font-size:12px;color:var(--text-muted);">
+                            Appareil enregistré : ${deviceInfo.device_name}
+                        </p>
+                        <button onclick="window.location.href='/'" class="btn-primary" style="margin-top:20px;padding:12px 30px;width:auto;">
+                            Accéder à mon NAS
+                        </button>
+                    `);
+                    // Re-initialize icons
+                    setTimeout(() => lucide.createIcons(), 100);
+                } else {
+                    showResult('error', `❌ Erreur : ${data.error || 'Erreur inconnue'}`);
+                    btn.disabled = false;
+                }
+            } catch (err) {
+                loading.classList.remove('active');
+                progressBar.classList.remove('active');
+                showResult('error', `❌ Erreur : ${err.message}`);
+                btn.disabled = false;
+            }
+        }
+
+        function updateProgress(percent, text) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('loadingText').textContent = text;
+        }
+
+        function showResult(type, message) {
+            const result = document.getElementById('result');
+            result.innerHTML = message;
+            result.className = 'result show ' + (type === 'success' ? 'success-bg' : 'error-bg');
+        }
+
+        // Permettre la validation avec Enter
+        document.getElementById('password-confirm').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                generateAndSaveKeys();
+            }
+        });
+    </script>
+</body>
+
+</html>

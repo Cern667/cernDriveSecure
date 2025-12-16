@@ -1,0 +1,280 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Mes Logs{% endblock %}
+{% block header_title %}Historique de Connexion{% endblock %}
+
+{% block header_actions %}
+<div style="display: flex; gap: 10px;">
+    <button class="btn btn-secondary btn-sm" onclick="window.location.reload()">
+        <i data-lucide="refresh-cw" size="16"></i>
+        Actualiser
+    </button>
+    <form method="POST" action="/clear-my-logs" style="margin: 0;" onsubmit="return confirm('Êtes-vous sûr de vouloir effacer tous vos logs ? Cette action est irréversible.');">
+        <button type="submit" class="btn btn-ghost btn-sm text-danger">
+            <i data-lucide="trash-2" size="16"></i>
+            Effacer mes logs
+        </button>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: var(--spacing-lg);
+        margin-bottom: var(--spacing-xl);
+    }
+
+    .kpi-card {
+        padding: var(--spacing-lg);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .kpi-label {
+        font-size: 13px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 600;
+    }
+
+    .kpi-value {
+        font-size: 28px;
+        font-weight: 700;
+        color: white;
+    }
+
+    .kpi-trend {
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .log-table td {
+        font-size: 14px;
+        padding: 14px 12px !important;
+    }
+
+    .log-table th {
+        font-size: 0.95rem;
+        font-weight: 600;
+        padding: 16px 12px !important;
+    }
+
+    .log-action {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 13px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.08);
+        font-weight: 500;
+    }
+
+    .log-timestamp {
+        font-family: 'JetBrains Mono', monospace;
+        color: var(--text-muted);
+        font-size: 13px;
+    }
+
+    .security-alert-row {
+        background: rgba(239, 68, 68, 0.08) !important;
+        border-left: 3px solid var(--danger);
+    }
+
+    .ip-address {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 13px;
+        color: var(--text-secondary);
+    }
+
+    @media (max-width: 768px) {
+        .kpi-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .log-table {
+            font-size: 0.85rem;
+        }
+
+        .log-table th:nth-child(4),
+        .log-table td:nth-child(4) {
+            display: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- KPI Cards -->
+<div class="kpi-grid">
+    <div class="card kpi-card">
+        <div class="flex-between">
+            <span class="kpi-label">Total Événements</span>
+            <i data-lucide="activity" size="18" class="text-muted"></i>
+        </div>
+        <div class="kpi-value">{{ stats.total_events }}</div>
+        <div class="kpi-trend text-success">
+            <i data-lucide="check-circle" size="14"></i>
+            Dernières 24h
+        </div>
+    </div>
+
+    <div class="card kpi-card">
+        <div class="flex-between">
+            <span class="kpi-label">Connexions</span>
+            <i data-lucide="log-in" size="18" class="text-muted"></i>
+        </div>
+        <div class="kpi-value">{{ stats.actions.get('LOGIN', 0) }}</div>
+        <div class="kpi-trend text-muted">
+            <i data-lucide="smartphone" size="14"></i>
+            Tous appareils
+        </div>
+    </div>
+
+    <div class="card kpi-card">
+        <div class="flex-between">
+            <span class="kpi-label">Alertes</span>
+            <i data-lucide="shield-alert" size="18" class="text-muted"></i>
+        </div>
+        <div class="kpi-value {% if stats.failed_count > 0 %}text-danger{% else %}text-success{% endif %}">
+            {{ stats.failed_count }}
+        </div>
+        <div class="kpi-trend {% if stats.failed_count > 0 %}text-danger{% else %}text-success{% endif %}">
+            <i data-lucide="{% if stats.failed_count > 0 %}alert-circle{% else %}check-circle{% endif %}" size="14"></i>
+            {% if stats.failed_count > 0 %}Tentatives échouées{% else %}Aucune alerte{% endif %}
+        </div>
+    </div>
+
+    <div class="card kpi-card">
+        <div class="flex-between">
+            <span class="kpi-label">IPs Uniques</span>
+            <i data-lucide="wifi" size="18" class="text-muted"></i>
+        </div>
+        <div class="kpi-value">{{ stats.unique_ips }}</div>
+        <div class="kpi-trend text-muted">
+            Adresses différentes
+        </div>
+    </div>
+</div>
+
+<!-- Security Alerts (si présentes) -->
+{% if alerts %}
+<div class="card" style="border-left: 3px solid var(--danger); margin-bottom: var(--spacing-xl);">
+    <div class="card-header" style="background: rgba(239, 68, 68, 0.08);">
+        <div class="card-title" style="color: var(--danger);">
+            <i data-lucide="alert-triangle" size="20"></i>
+            Alertes de Sécurité Récentes
+        </div>
+    </div>
+    <div class="table-container">
+        <table class="table log-table">
+            <thead>
+                <tr>
+                    <th>Date & Heure</th>
+                    <th>Action</th>
+                    <th>IP Source</th>
+                    <th>Détails</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for alert in alerts[:5] %}
+                <tr class="security-alert-row">
+                    <td class="log-timestamp">{{ alert.timestamp[:19] }}</td>
+                    <td><span class="log-action text-danger">{{ alert.action }}</span></td>
+                    <td class="ip-address">{{ alert.ip_address }}</td>
+                    <td class="text-danger">{{ alert.details or 'Tentative échouée' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Logs Table -->
+<div class="card" style="border: none; box-shadow: var(--shadow-md);">
+    <div class="card-header">
+        <div class="card-title">
+            <i data-lucide="file-text" size="20" class="text-primary"></i>
+            Historique Complet
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table class="table log-table">
+            <thead>
+                <tr>
+                    <th>Date & Heure</th>
+                    <th>Action</th>
+                    <th>IP Source</th>
+                    <th>Appareil</th>
+                    <th>Statut</th>
+                    <th>Détails</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr {% if log.status == 'FAILED' %}class="security-alert-row"{% endif %}>
+                    <td class="log-timestamp">{{ log.timestamp[:19] }}</td>
+                    <td>
+                        <span class="log-action {% if log.status == 'SUCCESS' %}text-info{% else %}text-danger{% endif %}">
+                            {{ log.action }}
+                        </span>
+                    </td>
+                    <td class="ip-address">{{ log.ip_address }}</td>
+                    <td class="text-muted" style="font-size: 12px;">
+                        {% if log.device_fingerprint %}
+                        <i data-lucide="smartphone" size="14"></i> {{ log.device_fingerprint }}
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if log.status == 'SUCCESS' %}
+                        <span class="badge badge-success">{{ log.status }}</span>
+                        {% elif log.status == 'FAILED' %}
+                        <span class="badge badge-danger">{{ log.status }}</span>
+                        {% else %}
+                        <span class="badge badge-info">{{ log.status }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-muted">{{ log.details or '-' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 60px; color: var(--text-muted);">
+                        <div style="margin-bottom: 16px; opacity: 0.3; display: flex; justify-content: center;">
+                            <i data-lucide="inbox" width="48" height="48"></i>
+                        </div>
+                        <div>Aucun log disponible</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Info Footer -->
+    <div style="padding: 16px; border-top: 1px solid var(--border-color); background: rgba(0, 0, 0, 0.1);">
+        <div style="display: flex; align-items: center; gap: 8px; color: var(--text-muted); font-size: 0.85rem;">
+            <i data-lucide="info" size="16"></i>
+            <span>
+                Les logs sont conservés pour votre sécurité.
+                En cas d'activité suspecte, veuillez contacter l'administrateur.
+            </span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+</script>
+{% endblock %}

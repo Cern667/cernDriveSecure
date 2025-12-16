@@ -111,7 +111,7 @@ def handle_file_upload(conn, user_base_dir):
                     if os.path.isfile(key_full_path):
                         key_versions_dir = safe_join(user_base_dir, os.path.join('.versions', key_relative_path))
                         os.makedirs(key_versions_dir, exist_ok=True)
-                        key_backup_path = os.path.join(key_versions_dir, f"{ts}.enc")
+                        key_backup_path = os.path.join(key_versions_dir, f"{ts}.key")
                         os.replace(key_full_path, key_backup_path)
                         print(f"    -> Version .key sauvegardée: {key_backup_path}")
 
@@ -206,7 +206,7 @@ def handle_restore_version(conn, user_base_dir):
                     if os.path.isfile(key_current_path):
                         key_versions_dir = safe_join(user_base_dir, os.path.join('.versions', key_relative_path))
                         os.makedirs(key_versions_dir, exist_ok=True)
-                        key_backup_path = os.path.join(key_versions_dir, f"{ts}.enc")
+                        key_backup_path = os.path.join(key_versions_dir, f"{ts}.key")
                         os.replace(key_current_path, key_backup_path)
                         print(f"    -> Version .key actuelle sauvegardée: {key_backup_path}")
 
@@ -221,7 +221,7 @@ def handle_restore_version(conn, user_base_dir):
         # Si c'est un .enc, restaurer aussi le .key correspondant (système X25519)
         if enc_relative_path.endswith('.enc'):
             key_relative_path = enc_relative_path.replace('.enc', '.key')
-            src_key_version_path = safe_join(user_base_dir, os.path.join('.versions', key_relative_path, f"{version_name}.enc"))
+            src_key_version_path = safe_join(user_base_dir, os.path.join('.versions', key_relative_path, f"{version_name}.key"))
             dst_key_current_path = safe_join(user_base_dir, key_relative_path)
             if os.path.isfile(src_key_version_path):
                 os.replace(src_key_version_path, dst_key_current_path)

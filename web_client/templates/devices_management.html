@@ -1,0 +1,487 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Gestion des Appareils{% endblock %}
+{% block header_title %}🔐 Gestion des Appareils{% endblock %}
+
+{% block extra_css %}
+<style>
+    .devices-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: var(--spacing-lg);
+        margin-bottom: var(--spacing-lg);
+    }
+
+    @media (max-width: 968px) {
+        .devices-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .device-item {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-md);
+        margin-bottom: var(--spacing-md);
+        transition: all var(--transition-fast);
+    }
+
+    .device-item:hover {
+        border-color: rgba(0, 112, 243, 0.5);
+        background: rgba(0, 112, 243, 0.05);
+    }
+
+    .device-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: var(--spacing-md);
+    }
+
+    .device-name {
+        font-weight: 600;
+        font-size: 16px;
+        margin-bottom: 4px;
+        color: var(--text-header);
+    }
+
+    .device-info {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+    }
+
+    .device-status {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: var(--radius-full);
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .status-active {
+        background: rgba(16, 185, 129, 0.2);
+        color: #6EE7B7;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .status-master {
+        background: rgba(245, 158, 11, 0.2);
+        color: #FCD34D;
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .status-revoked {
+        background: rgba(239, 68, 68, 0.2);
+        color: #FCA5A5;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .code-input-section {
+        text-align: center;
+        margin-bottom: var(--spacing-lg);
+    }
+
+    .code-input {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin: var(--spacing-lg) 0;
+    }
+
+    .code-digit {
+        width: 50px;
+        height: 60px;
+        text-align: center;
+        font-size: 28px;
+        font-weight: 700;
+        border: 2px solid rgba(0, 112, 243, 0.3);
+        background: var(--bg-input);
+        border-radius: var(--radius-md);
+        color: white;
+        font-family: var(--font-mono);
+    }
+
+    .code-digit:focus {
+        outline: none;
+        border-color: var(--primary-blue);
+        background: rgba(0, 112, 243, 0.1);
+        box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.2);
+    }
+
+    .alert {
+        padding: var(--spacing-md) var(--spacing-lg);
+        border-radius: var(--radius-sm);
+        margin-top: var(--spacing-md);
+        font-weight: 600;
+        display: none;
+    }
+
+    .alert.show {
+        display: block;
+    }
+
+    .alert-success {
+        background: rgba(16, 185, 129, 0.2);
+        color: #6EE7B7;
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .alert-error {
+        background: rgba(239, 68, 68, 0.2);
+        color: #FCA5A5;
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .alert-info {
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        padding: var(--spacing-md);
+        margin-top: var(--spacing-md);
+        border-radius: var(--radius-md);
+        font-size: 13px;
+        color: var(--text-secondary);
+    }
+
+    .stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-md);
+    }
+
+    .stat-item {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: var(--spacing-md);
+        text-align: center;
+    }
+
+    .stat-value {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--primary-blue);
+        margin-bottom: 4px;
+    }
+
+    .stat-label {
+        font-size: 13px;
+        color: var(--text-muted);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--text-muted);
+    }
+
+    .loading {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: var(--primary-blue);
+        animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .device-item.revoked {
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="devices-grid">
+    <!-- Devices List -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title">
+                <i data-lucide="smartphone"></i>
+                Appareils Connectés
+            </div>
+            <span class="loading" id="loadingDevices" style="display:none;"></span>
+        </div>
+
+        <div id="devicesList" style="padding: var(--spacing-lg);">
+            <!-- Devices will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Authorization Panel -->
+    <div>
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">
+                    <i data-lucide="check-circle"></i>
+                    Autoriser un Appareil
+                </div>
+            </div>
+
+            <div style="padding: var(--spacing-lg);">
+                <div class="code-input-section">
+                    <p style="color: var(--text-secondary); margin-bottom: var(--spacing-md); font-size: 14px;">
+                        Entrez le code affiché sur le nouvel appareil
+                    </p>
+
+                    <div class="code-input">
+                        <input type="text" class="code-digit" maxlength="1" id="digit1" autofocus>
+                        <input type="text" class="code-digit" maxlength="1" id="digit2">
+                        <input type="text" class="code-digit" maxlength="1" id="digit3">
+                        <input type="text" class="code-digit" maxlength="1" id="digit4">
+                        <input type="text" class="code-digit" maxlength="1" id="digit5">
+                        <input type="text" class="code-digit" maxlength="1" id="digit6">
+                    </div>
+
+                    <button class="btn btn-primary" onclick="authorizeDevice()" id="authorizeBtn" style="width: 100%;">
+                        <i data-lucide="check" size="18"></i>
+                        Autoriser l'appareil
+                    </button>
+
+                    <div class="alert-info">
+                        💡 Le code est valide pendant 60 secondes
+                    </div>
+
+                    <div class="alert" id="authAlert"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics -->
+        <div class="card" style="margin-top: var(--spacing-lg);">
+            <div class="card-header">
+                <div class="card-title">
+                    <i data-lucide="bar-chart-2"></i>
+                    Statistiques
+                </div>
+            </div>
+            <div style="padding: var(--spacing-lg);">
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-value" id="totalDevices">0</div>
+                        <div class="stat-label">Total</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="activeDevices">0</div>
+                        <div class="stat-label">Actifs</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ========== CODE INPUT NAVIGATION ==========
+    const digits = ['digit1', 'digit2', 'digit3', 'digit4', 'digit5', 'digit6'];
+
+    digits.forEach((id, index) => {
+        const input = document.getElementById(id);
+
+        input.addEventListener('input', (e) => {
+            if (e.target.value && index < digits.length - 1) {
+                document.getElementById(digits[index + 1]).focus();
+            }
+        });
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                document.getElementById(digits[index - 1]).focus();
+            }
+        });
+    });
+
+    // ========== LOAD DEVICES ==========
+    async function loadDevices() {
+        const loadingIndicator = document.getElementById('loadingDevices');
+        const devicesList = document.getElementById('devicesList');
+
+        loadingIndicator.style.display = 'inline-block';
+
+        try {
+            const response = await fetch('/api/devices');
+            const result = await response.json();
+
+            if (result.success) {
+                const devices = result.devices;
+
+                // Update statistics
+                const activeDevices = devices.filter(d => !d.revoked);
+                document.getElementById('totalDevices').textContent = devices.length;
+                document.getElementById('activeDevices').textContent = activeDevices.length;
+
+                // Render devices
+                if (devices.length === 0) {
+                    devicesList.innerHTML = `
+                        <div class="empty-state">
+                            <div style="font-size: 48px; margin-bottom: var(--spacing-md);">📱</div>
+                            <div>Aucun appareil enregistré</div>
+                        </div>
+                    `;
+                } else {
+                    devicesList.innerHTML = devices.map(device => renderDevice(device)).join('');
+                }
+
+                // Re-initialize Lucide icons after dynamic content
+                lucide.createIcons();
+            } else {
+                devicesList.innerHTML = `
+                    <div class="alert alert-error show">
+                        ❌ Erreur: ${result.error || 'Impossible de charger les appareils'}
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('Error loading devices:', error);
+            devicesList.innerHTML = `
+                <div class="alert alert-error show">
+                    ❌ Erreur réseau
+                </div>
+            `;
+        } finally {
+            loadingIndicator.style.display = 'none';
+        }
+    }
+
+    function renderDevice(device) {
+        const isMaster = device.authorized_by === null;
+        const isRevoked = device.revoked;
+        const createdDate = new Date(device.created_at).toLocaleDateString('fr-FR');
+        const lastUsed = device.last_used ? new Date(device.last_used).toLocaleString('fr-FR') : 'Jamais';
+
+        return `
+            <div class="device-item ${isRevoked ? 'revoked' : ''}">
+                <div class="device-header">
+                    <div>
+                        <div class="device-name">${device.device_name || 'Appareil inconnu'}</div>
+                        <div class="device-info">
+                            🆔 ${device.device_id.substring(0, 8)}...
+                        </div>
+                        <div class="device-info">
+                            📅 Ajouté le ${createdDate}
+                        </div>
+                        <div class="device-info">
+                            🕒 Dernière utilisation: ${lastUsed}
+                        </div>
+                        <div style="margin-top: var(--spacing-sm);">
+                            <span class="device-status ${isMaster ? 'status-master' : 'status-active'}">
+                                ${isMaster ? '👑 Appareil Maître' : '✅ Actif'}
+                            </span>
+                            ${isRevoked ? '<span class="device-status status-revoked" style="margin-left: 8px;">🚫 Révoqué</span>' : ''}
+                        </div>
+                    </div>
+                    ${!isRevoked && !isMaster ? `
+                        <button class="btn btn-danger btn-sm" onclick="revokeDevice('${device.device_id}', '${device.device_name}')">
+                            <i data-lucide="trash-2" size="16"></i>
+                            Supprimer
+                        </button>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    // ========== AUTHORIZE DEVICE ==========
+    async function authorizeDevice() {
+        const code = digits.map(id => document.getElementById(id).value).join('');
+        const authAlert = document.getElementById('authAlert');
+        const authorizeBtn = document.getElementById('authorizeBtn');
+
+        if (code.length !== 6) {
+            showAlert(authAlert, 'error', '❌ Veuillez entrer les 6 chiffres');
+            return;
+        }
+
+        authorizeBtn.disabled = true;
+        authorizeBtn.innerHTML = '<span class="loading"></span> Autorisation...';
+
+        try {
+            const response = await fetch('/api/authorize-with-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ auth_code: code })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showAlert(authAlert, 'success', '✅ Appareil autorisé avec succès !');
+
+                // Clear code inputs
+                digits.forEach(id => document.getElementById(id).value = '');
+                document.getElementById('digit1').focus();
+
+                // Reload devices list
+                setTimeout(() => {
+                    loadDevices();
+                }, 1000);
+            } else {
+                showAlert(authAlert, 'error', `❌ ${result.error || 'Code invalide'}`);
+            }
+        } catch (error) {
+            console.error('Authorization error:', error);
+            showAlert(authAlert, 'error', '❌ Erreur réseau');
+        } finally {
+            authorizeBtn.disabled = false;
+            authorizeBtn.innerHTML = '<i data-lucide="check" size="18"></i> Autoriser l\'appareil';
+            lucide.createIcons();
+        }
+    }
+
+    // ========== REVOKE DEVICE ==========
+    async function revokeDevice(deviceId, deviceName) {
+        if (!confirm(`Êtes-vous sûr de vouloir supprimer l'appareil "${deviceName}" ?\n\nCet appareil ne pourra plus accéder à votre compte.`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/revoke-device', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ device_id: deviceId })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert('✅ Appareil supprimé avec succès');
+                loadDevices();
+            } else {
+                alert(`❌ Erreur: ${result.message || 'Impossible de supprimer l\'appareil'}`);
+            }
+        } catch (error) {
+            console.error('Revoke error:', error);
+            alert('❌ Erreur réseau');
+        }
+    }
+
+    // ========== HELPERS ==========
+    function showAlert(element, type, message) {
+        element.className = `alert alert-${type} show`;
+        element.textContent = message;
+
+        setTimeout(() => {
+            element.classList.remove('show');
+        }, 5000);
+    }
+
+    // ========== INIT ==========
+    document.addEventListener('DOMContentLoaded', () => {
+        loadDevices();
+
+        // Auto-refresh every 10 seconds
+        setInterval(loadDevices, 10000);
+    });
+</script>
+{% endblock %}

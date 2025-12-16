@@ -1,0 +1,1267 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Mes Fichiers{% endblock %}
+{% block header_title %}Mes Fichiers{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Upload Tabs */
+    .upload-tabs {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .upload-tab {
+        padding: 12px 24px;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        font-weight: 600;
+        font-size: 15px;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.3s;
+        border-bottom: 3px solid transparent;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .upload-tab:hover {
+        color: var(--text-primary);
+    }
+
+    .upload-tab.active {
+        color: var(--primary-blue);
+        border-bottom-color: var(--primary-blue);
+    }
+
+    .upload-tab i {
+        margin-right: 8px;
+    }
+
+    /* Upload Zone Styling */
+    .upload-zone {
+        border: 3px dashed rgba(0, 112, 243, 0.3);
+        border-radius: 16px;
+        padding: 60px 30px;
+        text-align: center;
+        background: linear-gradient(135deg, rgba(0, 112, 243, 0.05), rgba(0, 209, 255, 0.05));
+        transition: all 0.3s ease;
+        cursor: pointer;
+        margin-bottom: var(--spacing-xl);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .upload-zone::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(0, 112, 243, 0.1) 0%, transparent 70%);
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+
+    .upload-zone:hover::before,
+    .upload-zone.drag-over::before {
+        opacity: 1;
+    }
+
+    .upload-zone:hover,
+    .upload-zone.drag-over {
+        border-color: var(--primary-blue);
+        background: linear-gradient(135deg, rgba(0, 112, 243, 0.1), rgba(0, 209, 255, 0.1));
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 112, 243, 0.2);
+    }
+
+    .upload-zone.drag-over {
+        border-style: solid;
+        border-width: 3px;
+    }
+
+    .upload-icon-wrapper {
+        width: 100px;
+        height: 100px;
+        margin: 0 auto 24px;
+        background: linear-gradient(135deg, var(--primary-blue), #00d1ff);
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 32px rgba(0, 112, 243, 0.3);
+        animation: float 3s ease-in-out infinite;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+    }
+
+    .upload-zone h3 {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 12px;
+        background: linear-gradient(135deg, #ffffff, #a0d8ff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .upload-zone p {
+        color: var(--text-muted);
+        font-size: 16px;
+        margin-bottom: 24px;
+    }
+
+    .upload-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 32px;
+        background: linear-gradient(135deg, var(--primary-blue), #0051c7);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 4px 16px rgba(0, 112, 243, 0.3);
+        font-family: 'Inter', sans-serif;
+    }
+
+    .upload-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 24px rgba(0, 112, 243, 0.4);
+    }
+
+    /* Breadcrumb */
+    .breadcrumb-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 12px;
+        margin-bottom: 24px;
+        border: 1px solid var(--border-color);
+    }
+
+    .breadcrumb {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 0;
+    }
+
+    .breadcrumb-item a {
+        color: var(--primary-blue);
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s;
+        padding: 8px 14px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .breadcrumb-item a:hover {
+        background: rgba(0, 112, 243, 0.15);
+    }
+
+    .breadcrumb-separator {
+        color: var(--text-muted);
+    }
+
+    /* File/Folder Items */
+    .file-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .file-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 20px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .file-item:hover {
+        background: rgba(0, 0, 0, 0.3);
+        border-color: var(--primary-blue);
+        transform: translateX(6px);
+        box-shadow: 0 4px 16px rgba(0, 112, 243, 0.15);
+    }
+
+    .file-item-info {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .file-icon-wrapper {
+        width: 52px;
+        height: 52px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, var(--primary-blue), #0051c7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        box-shadow: 0 4px 12px rgba(0, 112, 243, 0.25);
+    }
+
+    .folder-icon-wrapper {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
+    }
+
+    .file-details {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .file-name {
+        font-weight: 700;
+        font-size: 16px;
+        color: white;
+        margin-bottom: 6px;
+        word-break: break-word;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .file-meta {
+        font-size: 14px;
+        color: var(--text-muted);
+        font-family: 'JetBrains Mono', monospace;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .file-size {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        background: rgba(0, 112, 243, 0.1);
+        border-radius: 6px;
+        font-weight: 600;
+    }
+
+    .file-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .action-btn {
+        padding: 10px 20px;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 15px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .btn-download {
+        background: linear-gradient(135deg, var(--primary-blue), #0051c7);
+        color: white;
+        box-shadow: 0 4px 12px rgba(0, 112, 243, 0.25);
+    }
+
+    .btn-download:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(0, 112, 243, 0.4);
+    }
+
+    .btn-delete {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+        border: 2px solid var(--danger);
+    }
+
+    .btn-delete:hover {
+        background: var(--danger);
+        color: white;
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+    }
+
+    /* Search Bar */
+    .search-container {
+        position: relative;
+        margin-bottom: 24px;
+    }
+
+    .search-wrapper {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+    }
+
+    .search-input-wrapper {
+        flex: 1;
+        position: relative;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 14px 50px 14px 50px;
+        background: rgba(0, 0, 0, 0.2);
+        border: 2px solid var(--border-color);
+        border-radius: 12px;
+        color: white;
+        font-size: 15px;
+        transition: all 0.2s;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 4px rgba(0, 112, 243, 0.1);
+        background: rgba(0, 0, 0, 0.3);
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+    }
+
+    .search-clear {
+        position: absolute;
+        right: 18px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        cursor: pointer;
+        display: none;
+        transition: all 0.2s;
+    }
+
+    .search-clear:hover {
+        color: var(--danger);
+    }
+
+    .search-scope-toggle {
+        display: flex;
+        background: rgba(0, 0, 0, 0.2);
+        border: 2px solid var(--border-color);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .search-scope-btn {
+        padding: 14px 20px;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-family: 'Inter', sans-serif;
+        white-space: nowrap;
+    }
+
+    .search-scope-btn.active {
+        background: var(--primary-blue);
+        color: white;
+    }
+
+    .search-scope-btn:hover:not(.active) {
+        background: rgba(0, 112, 243, 0.1);
+        color: var(--primary-blue);
+    }
+
+    .search-results-info {
+        padding: 12px 20px;
+        background: rgba(0, 112, 243, 0.1);
+        border: 1px solid rgba(0, 112, 243, 0.3);
+        border-radius: 12px;
+        margin-bottom: 16px;
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .search-results-info.active {
+        display: flex;
+    }
+
+    .search-results-text {
+        color: var(--primary-blue);
+        font-weight: 600;
+    }
+
+    .search-results-close {
+        cursor: pointer;
+        color: var(--text-muted);
+        transition: all 0.2s;
+    }
+
+    .search-results-close:hover {
+        color: var(--danger);
+    }
+
+    /* Recent Uploads Section */
+    .recent-uploads {
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 24px;
+    }
+
+    .recent-uploads-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid var(--border-color);
+    }
+
+    .recent-uploads-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 18px;
+        font-weight: 700;
+        color: white;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .recent-uploads-toggle {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+
+    .recent-uploads-toggle:hover {
+        background: rgba(0, 112, 243, 0.1);
+        color: var(--primary-blue);
+    }
+
+    .upload-log-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+        margin-bottom: 8px;
+        transition: all 0.2s;
+    }
+
+    .upload-log-item:hover {
+        background: rgba(0, 0, 0, 0.4);
+        transform: translateX(4px);
+    }
+
+    .upload-log-icon {
+        width: 36px;
+        height: 36px;
+        background: linear-gradient(135deg, #10b981, #059669);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .upload-log-details {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .upload-log-file {
+        font-weight: 600;
+        color: white;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .upload-log-time {
+        font-size: 13px;
+        color: var(--text-muted);
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    .upload-log-status {
+        padding: 4px 10px;
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    .uploads-collapsed {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+    }
+
+    .uploads-expanded {
+        max-height: 600px;
+        overflow-y: auto;
+        transition: max-height 0.3s ease;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+    }
+
+    .empty-state i {
+        font-size: 80px;
+        opacity: 0.3;
+        margin-bottom: 24px;
+    }
+
+    /* Progress bar */
+    .upload-progress {
+        margin-top: 24px;
+        display: none;
+    }
+
+    .upload-progress.active {
+        display: block;
+    }
+
+    .upload-progress-bar {
+        height: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+        margin-bottom: 12px;
+    }
+
+    .upload-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary-blue), #00d4ff);
+        transition: width 0.3s;
+        border-radius: 4px;
+        box-shadow: 0 0 10px rgba(0, 209, 255, 0.5);
+    }
+
+    .upload-status {
+        font-size: 14px;
+        color: var(--text-muted);
+        text-align: center;
+        font-weight: 600;
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .file-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 14px;
+        }
+
+        .file-actions {
+            width: 100%;
+            flex-direction: column;
+        }
+
+        .action-btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .breadcrumb-container {
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-start;
+        }
+
+        .upload-zone {
+            padding: 40px 20px;
+        }
+
+        .upload-icon-wrapper {
+            width: 80px;
+            height: 80px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block header_actions %}
+<div style="display: flex; gap: 10px;">
+    {% if current_path %}
+    <a href="{{ url_for('restore_page', current_path=parent_path if parent_path else '') }}" class="btn btn-secondary btn-sm">
+        <i data-lucide="arrow-up" size="16"></i>
+        Remonter
+    </a>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb Navigation -->
+{% if breadcrumb or current_path %}
+<div class="breadcrumb-container">
+    <div class="breadcrumb">
+        <div class="breadcrumb-item">
+            <a href="{{ url_for('restore_page') }}">
+                <i data-lucide="home" size="18"></i>
+                Racine
+            </a>
+        </div>
+        {% for item in breadcrumb %}
+        <span class="breadcrumb-separator"><i data-lucide="chevron-right" size="16"></i></span>
+        <div class="breadcrumb-item">
+            <a href="{{ url_for('restore_page', current_path=item.path) }}">{{ item.name }}</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Upload Tabs -->
+<div class="upload-tabs">
+    <button class="upload-tab active" data-upload-type="file" onclick="switchUploadType('file')">
+        <i data-lucide="file" size="18"></i>
+        Fichiers
+    </button>
+    <button class="upload-tab" data-upload-type="folder" onclick="switchUploadType('folder')">
+        <i data-lucide="folder" size="18"></i>
+        Dossiers
+    </button>
+</div>
+
+<!-- Upload Zone with Drag & Drop -->
+<div class="upload-zone" id="uploadZone" onclick="triggerFileInput()">
+    <div class="upload-icon-wrapper">
+        <i data-lucide="upload-cloud" size="48" style="color: white;"></i>
+    </div>
+    <h3 id="uploadTitle">Glissez-déposez vos fichiers ici</h3>
+    <p id="uploadSubtitle">ou cliquez pour parcourir vos fichiers</p>
+    <button class="upload-button" type="button">
+        <i data-lucide="plus" size="20"></i>
+        Sélectionner des fichiers
+    </button>
+    <input type="file" id="fileInput" multiple style="display: none;" onchange="handleFileSelect(event)">
+    <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none;" onchange="handleFileSelect(event)">
+
+    <!-- Upload Progress -->
+    <div class="upload-progress" id="uploadProgress">
+        <div class="upload-progress-bar">
+            <div class="upload-progress-fill" id="progressFill" style="width: 0%"></div>
+        </div>
+        <div class="upload-status" id="uploadStatus">Téléversement en cours...</div>
+    </div>
+</div>
+
+<!-- Recent Uploads Section -->
+{% if recent_uploads %}
+<div class="recent-uploads">
+    <div class="recent-uploads-header">
+        <div class="recent-uploads-title">
+            <i data-lucide="clock" size="20"></i>
+            Derniers uploads
+            <span class="badge badge-success">{{ recent_uploads|length }}</span>
+        </div>
+        <button class="recent-uploads-toggle" id="uploadsToggle" onclick="toggleUploads()">
+            <i data-lucide="chevron-right" size="20" id="uploadsToggleIcon"></i>
+        </button>
+    </div>
+    <div class="uploads-collapsed" id="uploadsContent">
+        {% for log in recent_uploads %}
+        <div class="upload-log-item">
+            <div class="upload-log-icon">
+                <i data-lucide="upload" size="18" style="color: white;"></i>
+            </div>
+            <div class="upload-log-details">
+                <div class="upload-log-file">{{ log.details.replace('Fichier: ', '') }}</div>
+                <div class="upload-log-time">
+                    <i data-lucide="calendar" size="12" style="vertical-align: middle; margin-right: 4px;"></i>
+                    {{ log.timestamp[:19].replace('T', ' ') }}
+                </div>
+            </div>
+            <div class="upload-log-status">
+                <i data-lucide="check-circle" size="14" style="vertical-align: middle; margin-right: 4px;"></i>
+                Réussi
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Search Bar -->
+{% if folders or files_with_sizes %}
+<div class="search-container">
+    <div class="search-wrapper">
+        <div class="search-input-wrapper">
+            <i data-lucide="search" size="20" class="search-icon"></i>
+            <input type="text" id="searchInput" class="search-input" placeholder="Rechercher dans tous vos fichiers...">
+            <i data-lucide="x" size="20" class="search-clear" id="searchClear"></i>
+        </div>
+    </div>
+    <div class="search-results-info" id="searchResultsInfo">
+        <span class="search-results-text" id="searchResultsText"></span>
+        <i data-lucide="x" size="20" class="search-results-close" id="searchResultsClose"></i>
+    </div>
+</div>
+{% endif %}
+
+<!-- Main Content -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title">
+            <i data-lucide="folder-open" class="text-primary"></i>
+            {% if current_path %}{{ current_path.split('/')[-1] }}{% else %}Tous les fichiers{% endif %}
+        </div>
+        <span class="badge badge-info">{{ (folders|length + files_with_sizes|length) }} élément(s)</span>
+    </div>
+
+    <div class="file-list">
+        <!-- Folders -->
+        {% for folder in folders %}
+        <div class="file-item folder-item" onclick="location.href='{{ url_for('restore_page', current_path=(current_path + '/' + folder if current_path else folder)) }}'">
+            <div class="file-item-info">
+                <div class="file-icon-wrapper folder-icon-wrapper">
+                    <i data-lucide="folder" size="26" style="color: white;"></i>
+                </div>
+                <div class="file-details">
+                    <div class="file-name">{{ folder }}</div>
+                    <div class="file-meta">
+                        <span><i data-lucide="folder" size="14"></i> Dossier</span>
+                    </div>
+                </div>
+            </div>
+            <div class="file-actions" onclick="event.stopPropagation()">
+                {% set security_mgr = get_security_manager() %}
+                {% set is_expert_mode = security_mgr.get_user_security_level(username) == 'maximum' %}
+                {% set can_manage = not (is_admin and is_expert_mode) %}
+
+                {% if can_manage %}
+                <a href="{{ url_for('download_folder', folderpath=(current_path + '/' + folder if current_path else folder)) }}" class="action-btn btn-download">
+                    <i data-lucide="download" size="18"></i>
+                    Télécharger ZIP
+                </a>
+                <form method="post" action="{{ url_for('delete_folder_route') }}" style="margin: 0;" onsubmit="return confirm('Supprimer définitivement ce dossier et tout son contenu ?');">
+                    <input type="hidden" name="folderpath" value="{{ (current_path + '/' + folder if current_path else folder) }}">
+                    <input type="hidden" name="current_path" value="{{ current_path }}">
+                    <button type="submit" class="action-btn btn-delete">
+                        <i data-lucide="trash-2" size="18"></i>
+                        Supprimer
+                    </button>
+                </form>
+                {% else %}
+                <div class="action-btn" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 2px solid var(--danger); cursor: not-allowed;" title="Mode Expert : accès restreint">
+                    <i data-lucide="lock" size="18"></i>
+                    Accès restreint (Mode Expert)
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Files -->
+        {% for file_info in files_with_sizes %}
+        {% set full_path = (current_path + '/' + file_info.name if current_path else file_info.name) %}
+        <div class="file-item">
+            <div class="file-item-info">
+                <div class="file-icon-wrapper">
+                    <i data-lucide="file-text" size="26" style="color: white;"></i>
+                </div>
+                <div class="file-details">
+                    <div class="file-name">{{ file_info.name }}</div>
+                    <div class="file-meta">
+                        <span class="file-size">
+                            <i data-lucide="hard-drive" size="14"></i>
+                            {{ file_info.size }}
+                        </span>
+                        {% if file_info.modified %}
+                        <span>
+                            <i data-lucide="clock" size="14"></i>
+                            {{ file_info.modified }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="file-actions">
+                {% set security_mgr = get_security_manager() %}
+                {% set is_expert_mode = security_mgr.get_user_security_level(username) == 'maximum' %}
+                {% set can_manage = not (is_admin and is_expert_mode) %}
+
+                {% if can_manage %}
+                <a href="{{ url_for('download_file', filepath=full_path) }}" class="action-btn btn-download">
+                    <i data-lucide="download" size="18"></i>
+                    Télécharger
+                </a>
+                <form method="post" action="{{ url_for('delete_file_route') }}" style="margin: 0;" onsubmit="return confirm('Supprimer définitivement ce fichier ?');">
+                    <input type="hidden" name="filepath" value="{{ full_path }}">
+                    <input type="hidden" name="current_path" value="{{ current_path }}">
+                    <button type="submit" class="action-btn btn-delete">
+                        <i data-lucide="trash-2" size="18"></i>
+                        Supprimer
+                    </button>
+                </form>
+                {% else %}
+                <div class="action-btn" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 2px solid var(--danger); cursor: not-allowed;" title="Mode Expert : accès restreint">
+                    <i data-lucide="lock" size="18"></i>
+                    Accès restreint (Mode Expert)
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <!-- Empty State -->
+        {% if not folders and not files_with_sizes %}
+        <div class="empty-state">
+            <i data-lucide="inbox" size="80" style="color: var(--text-muted);"></i>
+            <h3 style="color: var(--text-secondary); margin-bottom: 12px; font-size: 24px;">Aucun fichier</h3>
+            <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 16px;">Ce dossier est vide. Commencez par uploader des fichiers.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    // Upload type management
+    let currentUploadType = 'file';
+
+    function switchUploadType(type) {
+        currentUploadType = type;
+
+        // Update active tab
+        document.querySelectorAll('.upload-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelector(`[data-upload-type="${type}"]`).classList.add('active');
+
+        // Update UI text
+        const title = document.getElementById('uploadTitle');
+        const subtitle = document.getElementById('uploadSubtitle');
+        const button = document.querySelector('.upload-button');
+
+        if (type === 'folder') {
+            title.textContent = 'Glissez-déposez vos dossiers ici';
+            subtitle.textContent = 'ou cliquez pour parcourir vos dossiers';
+            button.innerHTML = '<i data-lucide="plus" size="20"></i> Sélectionner des dossiers';
+        } else {
+            title.textContent = 'Glissez-déposez vos fichiers ici';
+            subtitle.textContent = 'ou cliquez pour parcourir vos fichiers';
+            button.innerHTML = '<i data-lucide="plus" size="20"></i> Sélectionner des fichiers';
+        }
+
+        lucide.createIcons();
+    }
+
+    function triggerFileInput() {
+        if (currentUploadType === 'folder') {
+            document.getElementById('folderInput').click();
+        } else {
+            document.getElementById('fileInput').click();
+        }
+    }
+
+    // Drag and Drop functionality
+    const uploadZone = document.getElementById('uploadZone');
+    const fileInput = document.getElementById('fileInput');
+    const folderInput = document.getElementById('folderInput');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const progressFill = document.getElementById('progressFill');
+    const uploadStatus = document.getElementById('uploadStatus');
+
+    // Prevent default drag behaviors
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, preventDefaults, false);
+        document.body.addEventListener(eventName, preventDefaults, false);
+    });
+
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    // Highlight drop zone when item is dragged over it
+    ['dragenter', 'dragover'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, () => {
+            uploadZone.classList.add('drag-over');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        uploadZone.addEventListener(eventName, () => {
+            uploadZone.classList.remove('drag-over');
+        }, false);
+    });
+
+    // Handle dropped files
+    uploadZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        handleFiles(files);
+    }, false);
+
+    function handleFileSelect(e) {
+        const files = e.target.files;
+        handleFiles(files);
+    }
+
+    function handleFiles(files) {
+        if (files.length === 0) return;
+
+        const formData = new FormData();
+
+        // Add current path if we're in a subfolder
+        const currentPath = '{{ current_path if current_path else "" }}';
+        if (currentPath) {
+            formData.append('current_path', currentPath);
+        }
+
+        // Calculate total size
+        let totalSize = 0;
+        for (let i = 0; i < files.length; i++) {
+            totalSize += files[i].size;
+        }
+
+        // Add all files with correct field name
+        for (let i = 0; i < files.length; i++) {
+            formData.append('files_to_upload', files[i]);
+        }
+
+        // Show progress bar
+        uploadProgress.classList.add('active');
+        progressFill.style.width = '0%';
+        uploadStatus.textContent = `Préparation de ${files.length} fichier(s) (${formatBytes(totalSize)})...`;
+
+        // Upload files
+        const xhr = new XMLHttpRequest();
+        let startTime = Date.now();
+
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+                const percentComplete = (e.loaded / e.total) * 100;
+                const elapsed = (Date.now() - startTime) / 1000; // seconds
+                const speed = e.loaded / elapsed; // bytes per second
+                const remaining = (e.total - e.loaded) / speed; // seconds
+
+                progressFill.style.width = percentComplete + '%';
+
+                uploadStatus.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span><strong>${Math.round(percentComplete)}%</strong> - ${formatBytes(e.loaded)} / ${formatBytes(e.total)}</span>
+                        <span>${formatBytes(speed)}/s - ${formatTime(remaining)} restant(s)</span>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 13px; opacity: 0.8;">
+                        ${files.length} fichier(s) en cours de téléversement...
+                    </div>
+                `;
+            }
+        });
+
+        xhr.addEventListener('load', () => {
+            // Parse la réponse JSON si possible
+            let responseData = null;
+            try {
+                responseData = JSON.parse(xhr.responseText);
+            } catch (e) {
+                // Si ce n'est pas du JSON, on considère que c'est du HTML (ancien comportement)
+            }
+
+            // Vérifier le succès : status 200 OU réponse JSON avec success: true
+            const isSuccess = (xhr.status === 200) || (responseData && responseData.success === true);
+
+            if (isSuccess) {
+                uploadStatus.innerHTML = `
+                    <div style="color: #10b981; font-weight: 700;">
+                        ✓ ${files.length} fichier(s) uploadé(s) avec succès !
+                    </div>
+                `;
+                progressFill.style.width = '100%';
+                progressFill.style.background = 'linear-gradient(90deg, #10b981, #34d399)';
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                const errorMessage = (responseData && responseData.message) ? responseData.message : 'Erreur inconnue';
+                uploadStatus.innerHTML = `
+                    <div style="color: #ef4444; font-weight: 700;">
+                        ✗ Erreur: ${errorMessage}
+                    </div>
+                `;
+                progressFill.style.background = 'linear-gradient(90deg, #ef4444, #f87171)';
+                setTimeout(() => {
+                    uploadProgress.classList.remove('active');
+                }, 3000);
+            }
+        });
+
+        xhr.addEventListener('error', () => {
+            uploadStatus.innerHTML = `
+                <div style="color: #ef4444; font-weight: 700;">
+                    ✗ Erreur réseau - Veuillez réessayer
+                </div>
+            `;
+            progressFill.style.background = 'linear-gradient(90deg, #ef4444, #f87171)';
+            setTimeout(() => {
+                uploadProgress.classList.remove('active');
+            }, 3000);
+        });
+
+        xhr.open('POST', '/upload');
+        xhr.send(formData);
+    }
+
+    // Helper function to format bytes
+    function formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    // Helper function to format time
+    function formatTime(seconds) {
+        if (seconds < 60) return Math.round(seconds) + 's';
+        const minutes = Math.floor(seconds / 60);
+        const secs = Math.round(seconds % 60);
+        return `${minutes}m ${secs}s`;
+    }
+
+    // Search functionality
+    const searchInput = document.getElementById('searchInput');
+    const searchClear = document.getElementById('searchClear');
+    const searchResultsInfo = document.getElementById('searchResultsInfo');
+    const searchResultsText = document.getElementById('searchResultsText');
+    const searchResultsClose = document.getElementById('searchResultsClose');
+
+    let allUserFiles = null; // Cache for all user files
+
+    // Clear search
+    if (searchClear) {
+        searchClear.addEventListener('click', () => {
+            searchInput.value = '';
+            searchClear.style.display = 'none';
+            searchResultsInfo.classList.remove('active');
+            resetSearch();
+        });
+    }
+
+    if (searchResultsClose) {
+        searchResultsClose.addEventListener('click', () => {
+            searchInput.value = '';
+            searchClear.style.display = 'none';
+            searchResultsInfo.classList.remove('active');
+            resetSearch();
+        });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.trim();
+
+            // Show/hide clear button
+            if (searchTerm) {
+                searchClear.style.display = 'block';
+            } else {
+                searchClear.style.display = 'none';
+                searchResultsInfo.classList.remove('active');
+                resetSearch();
+                return;
+            }
+
+            performSearch(searchTerm);
+        });
+    }
+
+    function performSearch(searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        // Always search in all files
+        searchAllFiles(searchLower);
+    }
+
+    function searchAllFiles(searchTerm) {
+        // Show loading
+        searchResultsText.innerHTML = '<i data-lucide="loader" size="16" class="spinning" style="margin-right: 8px;"></i> Recherche dans tous les fichiers...';
+        searchResultsInfo.classList.add('active');
+        lucide.createIcons();
+
+        // Fetch all files if not cached
+        fetch('/api/all_files')
+            .then(response => response.json())
+            .then(data => {
+                allUserFiles = data.files;
+                displaySearchResults(searchTerm);
+            })
+            .catch(error => {
+                console.error('Error fetching files:', error);
+                searchResultsText.textContent = 'Erreur lors de la recherche';
+            });
+    }
+
+    function displaySearchResults(searchTerm) {
+        const results = allUserFiles.filter(file =>
+            file.toLowerCase().includes(searchTerm)
+        );
+
+        // Hide current folder items
+        document.querySelectorAll('.file-item').forEach(item => {
+            item.style.display = 'none';
+        });
+
+        // Show results count
+        searchResultsText.textContent = `${results.length} résultat(s) trouvé(s) dans tous vos fichiers`;
+
+        // Create results display
+        const fileList = document.querySelector('.file-list');
+
+        // Remove any existing search results
+        document.querySelectorAll('.search-result-item').forEach(item => item.remove());
+
+        if (results.length === 0) {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.className = 'empty-state search-result-item';
+            emptyDiv.innerHTML = `
+                <i data-lucide="search-x" size="80" style="color: var(--text-muted);"></i>
+                <h3 style="color: var(--text-secondary); margin-bottom: 12px; font-size: 24px;">Aucun résultat</h3>
+                <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 16px;">Essayez avec un autre terme de recherche.</p>
+            `;
+            fileList.insertBefore(emptyDiv, fileList.firstChild);
+            lucide.createIcons();
+            return;
+        }
+
+        // Display results
+        results.forEach(filePath => {
+            const pathParts = filePath.split('/');
+            const fileName = pathParts[pathParts.length - 1];
+            const folderPath = pathParts.slice(0, -1).join('/');
+
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'file-item search-result-item';
+            resultDiv.innerHTML = `
+                <div class="file-item-info">
+                    <div class="file-icon-wrapper">
+                        <i data-lucide="file-text" size="26" style="color: white;"></i>
+                    </div>
+                    <div class="file-details">
+                        <div class="file-name">${fileName}</div>
+                        <div class="file-meta">
+                            <span style="display: inline-flex; align-items: center; gap: 6px;">
+                                <i data-lucide="folder" size="14"></i>
+                                ${folderPath || 'Racine'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="file-actions">
+                    <a href="/download/${encodeURIComponent(filePath)}" class="action-btn btn-download">
+                        <i data-lucide="download" size="18"></i>
+                        Télécharger
+                    </a>
+                    <a href="/restore/${encodeURIComponent(folderPath || '')}" class="action-btn" style="background: rgba(0, 112, 243, 0.1); color: var(--primary-blue); border: 2px solid var(--primary-blue);">
+                        <i data-lucide="folder-open" size="18"></i>
+                        Ouvrir dossier
+                    </a>
+                </div>
+            `;
+
+            fileList.insertBefore(resultDiv, fileList.firstChild);
+        });
+
+        lucide.createIcons();
+    }
+
+    function resetSearch() {
+        // Show all items in current folder
+        document.querySelectorAll('.file-item:not(.search-result-item)').forEach(item => {
+            item.style.display = '';
+        });
+
+        // Remove search result items
+        document.querySelectorAll('.search-result-item').forEach(item => {
+            item.remove();
+        });
+    }
+
+    // Add spinning animation for loading icon
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .spinning {
+            display: inline-block;
+            animation: spin 1s linear infinite;
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Toggle recent uploads visibility
+    function toggleUploads() {
+        const uploadsContent = document.getElementById('uploadsContent');
+        const toggleIcon = document.getElementById('uploadsToggleIcon');
+
+        if (uploadsContent.classList.contains('uploads-expanded')) {
+            uploadsContent.classList.remove('uploads-expanded');
+            uploadsContent.classList.add('uploads-collapsed');
+            toggleIcon.setAttribute('data-lucide', 'chevron-right');
+        } else {
+            uploadsContent.classList.remove('uploads-collapsed');
+            uploadsContent.classList.add('uploads-expanded');
+            toggleIcon.setAttribute('data-lucide', 'chevron-down');
+        }
+
+        lucide.createIcons();
+    }
+</script>
+{% endblock %}

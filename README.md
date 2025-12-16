@@ -1,100 +1,245 @@
-# NAS Securise X25519
+# 🛡️ CernCloud.Nas - Secure NAS with Zero-Knowledge Encryption
 
-Stockage en reseau avec chiffrement zero-knowledge (X25519 + AES-256-GCM) et authentification LDAP.
+**CernCloud.Nas** is a secure Network-Attached Storage (NAS) solution featuring **Zero-Knowledge encryption**, ensuring that your files are protected with end-to-end encryption where the server never has access to your encryption keys or data.
 
-## Quick Start
+[🇫🇷 French version](README.fr.md)
 
+---
+
+## ✨ Key Features
+
+### 🔐 **Zero-Knowledge Architecture**
+- **Client-side encryption**: All encryption/decryption happens in your browser
+- **Password-based key derivation**: Your private key is encrypted with YOUR password using PBKDF2
+- **Server-blind**: The server never knows your password or private key
+- **Multi-device support** with 6-digit authorization codes
+
+### 🔒 **Security**
+- **X25519** (Curve25519) for ECDH key exchange
+- **AES-256-GCM** for file encryption
+- **Ed25519** for device signature verification
+- **PBKDF2** (100,000 iterations) for password-based key encryption
+- **Device fingerprinting** for unique device identification
+- **LDAP authentication** for enterprise user management
+
+### 📁 **File Management**
+- **Upload/Download**: Drag-and-drop interface for encrypted file uploads
+- **Versioning**: Automatic file versioning with restore capabilities
+- **Folder support**: Organize files in encrypted folders
+- **Search**: Full-text search across encrypted files
+- **Quotas**: Per-user storage limits
+
+### 👥 **Multi-Device Management**
+- **Device authorization**: Add new devices with simple 6-digit codes
+- **Device revocation**: Remove devices instantly
+- **Device tracking**: Monitor all connected devices with detailed information
+- **Master device**: First device acts as the trust anchor
+
+### 📊 **Administration**
+- **User management**: LDAP-based user administration
+- **Activity logs**: Comprehensive audit trails
+- **Security levels**: Flexible security modes per user
+- **Global security mode**: System-wide security policy enforcement
+
+---
+
+## 🚀 Quick Start
+
+### **Prerequisites**
+- Docker & Docker Compose
+- 2GB RAM minimum
+- Linux/macOS/Windows (WSL2)
+
+### **Installation**
+
+1. **Clone the repository**
 ```bash
-# Cloner et lancer
-git clone <repo>
+git clone <repository-url>
 cd nas
-./start.sh
 ```
 
-Acces: http://localhost:5000
+2. **Configure environment**
+```bash
+cp .env.example .env
+nano .env  # Edit with your values
+```
 
-## Utilisateurs par defaut
+3. **Generate Flask secret key**
+```bash
+python3 generate_secret.py
+# Copy the generated key to .env
+```
 
-| Utilisateur | Mot de passe |
-|-------------|--------------|
-| alice       | alice123     |
-| bob         | bob123       |
-| charlie     | charlie123   |
-| admin       | admin123     |
+4. **Start the services**
+```bash
+docker-compose up --build -d
+```
 
-## Commandes
+5. **Access the application**
+```
+http://localhost:5000
+```
+
+---
+
+## 📋 Configuration
+
+### **Environment Variables (.env)**
 
 ```bash
-./start.sh           # Demarrer (defaut)
-./start.sh stop      # Arreter
-./start.sh clean     # Arreter + supprimer donnees
-./start.sh logs      # Voir les logs
+# Flask
+SECRET_KEY=<generate-with-generate_secret.py>
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=admin
+
+# LDAP
+LDAP_ORGANISATION=NAS Company
+LDAP_DOMAIN=nas.local
+LDAP_BASE_DN=dc=nas,dc=local
+LDAP_ADMIN_PASSWORD=admin
+
+# Application
+FLASK_PORT=5000
 ```
 
-## Prerequis
+### **First Login**
 
-- Docker + Docker Compose
-- Python 3.9+ (pour generation des cles)
+1. Navigate to `http://localhost:5000`
+2. Login with default admin credentials (configured in `.env`)
+3. You'll be prompted to generate encryption keys
+4. **IMPORTANT**: Remember your master password – it CANNOT be recovered!
 
-## Architecture
+---
 
-```
-Client Flask (5000) --> Serveur Storage (65432)
-         |
-         v
-    LDAP (389)
-```
+## 💡 Usage
 
-- Le client chiffre les fichiers avec X25519 + AES-256-GCM
-- Le serveur stocke uniquement les fichiers chiffres
-- Le serveur ne peut jamais dechiffrer les fichiers
+### **Initial Setup (First Device)**
 
-## Structure des fichiers
+1. Login to your account
+2. Create a **strong master password** (encrypts your private key)
+3. Click "Generate my encryption keys"
+4. Save your password securely – **loss means permanent data loss**
 
-```
-nas/
-├── dossier_client/      # Application web Flask
-├── dossier_server/      # Serveur de stockage
-├── client_crypto.py     # Module de chiffrement
-├── docker-compose.yml   # Orchestration
-├── Dockerfile           # Image Docker (multi-stage)
-├── start.sh             # Script principal
-├── ldap_bootstrap/      # Utilisateurs LDAP (charge au demarrage)
-├── user_keys/           # Cles utilisateurs (genere)
-└── storage/             # Fichiers chiffres (genere)
-```
+### **Adding a New Device**
 
-## Cles utilisateurs
+**On the new device:**
+1. Login with your credentials
+2. A **6-digit code** will be displayed (valid for 60 seconds)
 
-Les cles sont generees automatiquement au demarrage.
+**On a trusted device:**
+1. Click "Connexion appareil" in the sidebar
+2. Enter the 6-digit code shown on the new device
+3. Click "Autoriser l'appareil"
 
-```
-user_keys/<user>/
-├── private_key.pem   # SECRET - ne jamais partager
-└── public_key.pem    # Public
-```
+**Back on the new device:**
+1. Enter your **master password**
+2. Device is now authorized and can decrypt your files
 
-**Important**: La perte de la cle privee = perte des fichiers.
+### **Uploading Files**
 
-## Configuration avancee
+1. Go to "Mes Fichiers"
+2. Drag & drop files or click to browse
+3. Files are **automatically encrypted** before upload
+4. Server stores only encrypted data
 
-Variables d'environnement dans `docker-compose.yml`:
+### **Downloading Files**
 
-- `FLASK_SECRET_KEY` - Cle de session Flask
-- `ADMIN_USERNAME` - Utilisateur admin
-- `STORAGE_SERVER_IP` - IP du serveur de stockage
-- `FLASK_USE_MOCK_LDAP` - Mode mock sans LDAP
+1. Browse to your file
+2. Click "Download"
+3. File is **decrypted in your browser**
+4. Save the decrypted file locally
 
-## Depannage
+### **Managing Devices**
 
+1. Go to "Connexion appareil" (sidebar)
+2. View all connected devices
+3. Authorize new devices with 6-digit codes
+4. Revoke access from compromised devices
+
+---
+
+## 🔧 Tech Stack
+
+### **Backend**
+- **Flask**: Web framework
+- **Python 3.11**: Core language
+- **LDAP**: User authentication
+- **SQLite**: Metadata storage (logs, activity)
+
+### **Frontend**
+- **HTML5 + CSS3**: Modern UI
+- **JavaScript (ES6+)**: Client-side logic
+- **Web Crypto API**: Browser-based encryption
+- **Lucide Icons**: Modern iconography
+
+### **Encryption**
+- **X25519** (Curve25519-ECDH): Key exchange
+- **Ed25519**: Digital signatures (device auth)
+- **AES-256-GCM**: Symmetric encryption
+- **PBKDF2**: Password-based key derivation
+
+### **Infrastructure**
+- **Docker**: Containerization
+- **Docker Compose**: Multi-container orchestration
+- **OpenLDAP**: Directory services
+
+---
+
+## 🛡️ Security Considerations
+
+### **✅ What is protected**
+- All files are encrypted client-side before upload
+- Private keys are encrypted with user passwords
+- Server cannot decrypt any user data
+- Device authorization uses cryptographic signatures
+
+### **⚠️ Limitations**
+- **Password loss = data loss**: There is NO password recovery
+- **Metadata is visible**: File names, sizes, and timestamps are stored unencrypted
+- **Browser security**: Client-side crypto relies on browser security
+
+### **🔑 Best Practices**
+1. Use a **strong, unique master password** (20+ characters)
+2. Store password in a **password manager**
+3. Regularly **review authorized devices**
+4. **Revoke devices** when no longer needed
+5. Keep **backups** of critical encrypted files
+
+---
+
+## 📜 License
+
+© 2025 CernCloud Systems. All rights reserved.
+
+---
+
+## 🆘 Support
+
+### **Common Issues**
+
+**Problem**: "Code invalide" when authorizing device  
+**Solution**: Codes expire after 60 seconds. Generate a new code.
+
+**Problem**: "Clé privée chiffrée introuvable"  
+**Solution**: Run the initial setup on `/setup-keys` first.
+
+**Problem**: Files won't decrypt  
+**Solution**: Ensure you're using the correct master password.
+
+**Problem**: LDAP authentication fails  
+**Solution**: Check LDAP connection + credentials in `.env`.
+
+---
+
+## 🔄 Updates
+
+Pull the latest version:
 ```bash
-# Reconstruire les images
-docker compose build --no-cache
-
-# Voir les logs d'un service
-docker compose logs -f client
-
-# Reinitialiser completement
-./start.sh clean
-./start.sh
+git pull origin main
+docker-compose down
+docker-compose up --build -d
 ```
+
+---
+
+**Built with ❤️ for privacy and security.**

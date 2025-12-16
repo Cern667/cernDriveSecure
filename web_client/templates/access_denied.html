@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accès Refusé - NAS Sécurisé</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .access-denied-container {
+            background: white;
+            border-radius: 20px;
+            padding: 50px;
+            max-width: 600px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .lock-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: shake 0.5s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        h1 {
+            color: #dc3545;
+            font-size: 32px;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            color: #555;
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 20px;
+            margin: 30px 0;
+            text-align: left;
+            border-radius: 5px;
+        }
+
+        .warning-box strong {
+            color: #856404;
+            display: block;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .warning-box p {
+            color: #856404;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        .warning-box ul {
+            margin-left: 20px;
+            color: #856404;
+        }
+
+        .warning-box ul li {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .btn-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 30px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        }
+
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+            border-radius: 5px;
+        }
+
+        .info-box strong {
+            color: #004085;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .info-box p {
+            color: #004085;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .access-denied-container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .message {
+                font-size: 16px;
+            }
+
+            .btn-container {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="access-denied-container">
+        <div class="lock-icon">🔒</div>
+        <h1>Accès Refusé</h1>
+
+        <p class="message">{{ message }}</p>
+
+        {% if security_level == 'maximum' %}
+        <div class="warning-box">
+            <strong>⚠️ Mode Sécurité Maximale activé</strong>
+            <p>Vous avez activé le mode Sécurité Maximale pour votre compte. Cela signifie que :</p>
+            <ul>
+                <li>Votre clé privée n'est <strong>PAS</strong> stockée sur le serveur</li>
+                <li>Seuls les appareils autorisés peuvent accéder à vos fichiers</li>
+                <li>Vous devez posséder votre clé privée sur cet appareil</li>
+            </ul>
+        </div>
+
+        <div class="info-box">
+            <strong>💡 Comment résoudre ce problème ?</strong>
+            <p>Pour accéder à vos fichiers depuis cet appareil, vous devez :</p>
+            <ol style="margin-left: 20px; color: #004085;">
+                <li>Télécharger votre clé privée depuis un appareil autorisé</li>
+                <li>Transférer la clé privée sur cet appareil de manière sécurisée</li>
+                <li>Uploader la clé privée lors de votre prochaine connexion</li>
+            </ol>
+            <p style="margin-top: 15px;"><strong>Ou</strong> vous pouvez désactiver le mode Sécurité Maximale depuis les paramètres de sécurité.</p>
+        </div>
+        {% else %}
+        <div class="info-box">
+            <strong>💡 Que faire ?</strong>
+            <p>Vous n'avez pas encore configuré vos clés de chiffrement sur cet appareil. Veuillez uploader votre clé privée ou contacter l'administrateur.</p>
+        </div>
+        {% endif %}
+
+        <div class="btn-container">
+            <a href="/admin/security" class="btn btn-primary">⚙️ Paramètres de Sécurité</a>
+            <a href="/need-private-key" class="btn btn-success">📤 Uploader ma clé privée</a>
+            <a href="/" class="btn btn-secondary">🏠 Retour à l'accueil</a>
+        </div>
+
+        <p style="margin-top: 30px; color: #888; font-size: 14px;">
+            Utilisateur connecté : <strong>{{ username }}</strong>
+        </p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,376 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Mode de Sécurité Global{% endblock %}
+{% block header_title %}Gestion du Mode de Sécurité Global{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+
+    <!-- Current Mode Status -->
+    <div class="card"
+        style="border-top: 4px solid {{ 'var(--success)' if current_mode == 'maximum' else 'var(--warning)' }}; margin-bottom: var(--spacing-lg);">
+        <div class="card-header"
+            style="border-bottom: 1px solid var(--border-color); padding: var(--spacing-md) var(--spacing-lg);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div
+                        style="width: 48px; height: 48px; border-radius: 12px; background: {{ 'linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0.1))' if current_mode == 'maximum' else 'linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(245, 158, 11, 0.1))' }}; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="{{ 'shield-check' if current_mode == 'maximum' else 'shield' }}" size="24"
+                            style="color: {{ 'var(--success)' if current_mode == 'maximum' else 'var(--warning)' }};"></i>
+                    </div>
+                    <div>
+                        <h3 class="card-title" style="font-size: 1.1rem; font-weight: 600; margin-bottom: 4px;">Mode
+                            Actuel</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0;">
+                            Global pour tous les utilisateurs
+                        </p>
+                    </div>
+                </div>
+                <span class="badge"
+                    style="background: {{ 'rgba(16, 185, 129, 0.2)' if current_mode == 'maximum' else 'rgba(245, 158, 11, 0.2)' }}; color: {{ 'var(--success)' if current_mode == 'maximum' else 'var(--warning)' }}; padding: 8px 16px; border-radius: 12px; font-size: 0.9rem; font-weight: 700; border: 2px solid {{ 'var(--success)' if current_mode == 'maximum' else 'var(--warning)' }};">
+                    <i data-lucide="{{ 'lock' if current_mode == 'maximum' else 'unlock' }}" size="14"
+                        style="margin-right: 6px; vertical-align: middle;"></i>
+                    {{ 'MODE MAXIMUM' if current_mode == 'maximum' else 'MODE NORMAL' }}
+                </span>
+            </div>
+        </div>
+
+        <div style="padding: var(--spacing-lg);">
+            <div
+                style="background: {{ 'rgba(16, 185, 129, 0.1)' if current_mode == 'maximum' else 'rgba(245, 158, 11, 0.1)' }}; padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+                <p style="margin: 0; font-size: 0.9rem; line-height: 1.6;">
+                    {% if current_mode == 'maximum' %}
+                    <strong>🔒 Zero-Knowledge activé</strong> : Les clés privées sont gérées côté client. Le serveur ne
+                    peut pas déchiffrer les fichiers.
+                    {% else %}
+                    <strong>⚠️ Mode normal activé</strong> : Simple à utiliser, pas de clé privée requise. Le serveur
+                    gère les clés de chiffrement.
+                    {% endif %}</ style="display: flex; flex-direction: column; gap: 16px; margin-top: 20px;">
+                    {% if users_count > 0 %}
+                <div style="background: #FEF2F2; border: 1px solid #FECACA; border-radius: 8px; padding: 16px;">
+                    <div style="display: flex; gap: 12px; align-items: start;">
+                        <i data-lucide="alert-triangle" size="20"
+                            style="color: #991B1B; flex-shrink: 0; margin-top: 2px;"></i>
+                        <div>
+                            <h4 style="color: #991B1B; font-weight: 600; margin-bottom: 8px; font-size: 0.95rem;">
+                                Utilisateurs avec fichiers</h4>
+                            <p style="color: #7F1D1D; font-size: 0.85rem; margin: 0;">
+                                <strong>{{ users_count }} utilisateur(s)</strong> ont actuellement des fichiers stockés.
+                                Le changement de mode nécessitera la suppression de tous les fichiers.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Mode Selection -->
+    <div class="card">
+        <div class="card-header"
+            style="border-bottom: 1px solid var(--border-color); padding: var(--spacing-md) var(--spacing-lg);">
+            <h3 class="card-title" style="font-size: 1.1rem; font-weight: 600;">Changer le Mode de Sécurité</h3>
+        </div>
+
+        <div style="padding: var(--spacing-lg);">
+            <div style="display: grid; gap: var(--spacing-md);">
+                <!-- Mode Normal -->
+                <label class="mode-option" style="cursor: pointer; user-select: none;">
+                    <input type="radio" name="security_mode" value="normal" {% if current_mode=='normal' %}checked{%
+                        endif %} style="display: none;">
+                    <div class="mode-card" data-mode="normal"
+                        style="border: 2px solid {{ 'var(--warning)' if current_mode == 'normal' else 'var(--border-color)' }}; 
+                                border-radius: 12px; 
+                                padding: 20px; 
+                                transition: all 0.3s; 
+                                background: {{ 'rgba(245, 158, 11, 0.1)' if current_mode == 'normal' else 'transparent' }};">
+                        <div style="display: flex; gap: 16px; align-items: start;">
+                            <div
+                                style="width: 40px; height: 40px; border-radius: 10px; background: rgba(245, 158, 11, 0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <i data-lucide="shield" size="20" style="color: var(--warning);"></i>
+                            </div>
+                            <div style="flex: 1;">
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <h4 style="font-size: 1rem; font-weight: 600; margin: 0;">⚠️ Mode Normal</h4>
+                                    {% if current_mode == 'normal' %}
+                                    <i data-lucide="check-circle" size="20" style="color: var(--warning);"></i>
+                                    {% endif %}
+                                </div>
+                                <p
+                                    style="font-size: 0.85rem; color: var(--text-secondary); margin: 0; line-height: 1.5;">
+                                    Les clés sont gérées par le serveur. Simple à utiliser, pas de clé privée requise.
+                                    Accès multi-appareils automatique.
+                                </p>
+                                <ul
+                                    style="margin-top: 12px; margin-bottom: 0; padding-left: 20px; font-size: 0.8rem; color: var(--text-muted);">
+                                    <li>Clés stockées serveur (chiffrées)</li>
+                                    <li>Déchiffrement géré par le serveur</li>
+                                    <li>Simplicité maximale</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </label>
+
+                <!-- Mode Maximum -->
+                <label class="mode-option" style="cursor: pointer; user-select: none;">
+                    <input type="radio" name="security_mode" value="maximum" {% if current_mode=='maximum' %}checked{%
+                        endif %} style="display: none;">
+                    <div class="mode-card" data-mode="maximum"
+                        style="border: 2px solid {{ 'var(--success)' if current_mode == 'maximum' else 'var(--border-color)' }}; 
+                                border-radius: 12px; 
+                                padding: 20px; 
+                                transition: all 0.3s; 
+                                background: {{ 'rgba(16, 185, 129, 0.1)' if current_mode == 'maximum' else 'transparent' }};">
+                        <div style="display: flex; gap: 16px; align-items: start;">
+                            <div
+                                style="width: 40px; height: 40px; border-radius: 10px; background: rgba(16, 185, 129, 0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <i data-lucide="shield-check" size="20" style="color: var(--success);"></i>
+                            </div>
+                            <div style="flex: 1;">
+                                <div
+                                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <h4 style="font-size: 1rem; font-weight: 600; margin: 0;">🔒 Mode Sécurité Maximale
+                                    </h4>
+                                    {% if current_mode == 'maximum' %}
+                                    <i data-lucide="check-circle" size="20" style="color: var(--success);"></i>
+                                    {% endif %}
+                                </div>
+                                <p
+                                    style="font-size: 0.85rem; color: var(--text-secondary); margin: 0; line-height: 1.5;">
+                                    Zero-Knowledge complet. Les clés privées restent sur les appareils des utilisateurs.
+                                    Le serveur ne peut jamais déchiffrer les fichiers.
+                                </p>
+                                <ul
+                                    style="margin-top: 12px; margin-bottom: 0; padding-left: 20px; font-size: 0.8rem; color: var(--text-muted);">
+                                    <li>Clés privées côté client uniquement</li>
+                                    <li>Déchiffrement client-side</li>
+                                    <li>Sécurité maximale (modèle Proton Drive)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <button id="change-mode-btn" onclick="requestModeChange()" class="btn btn-primary"
+                style="width: 100%; margin-top: var(--spacing-lg); padding: 14px; font-size: 1rem;">
+                <i data-lucide="settings" size="18" style="margin-right: 8px;"></i>
+                Appliquer le changement
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmation -->
+<div id="purge-modal" class="modal" style="display: none;">
+    <div class="modal-overlay" onclick="cancelChange()"></div>
+    <div class="modal-content" style="max-width: 600px; max-height: 90vh; overflow-y: auto;">
+        <div style="padding: var(--spacing-lg);">
+            <h3
+                style="font-size: 1.3rem; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 12px;">
+                <i data-lucide="alert-triangle" size="28" style="color: var(--danger);"></i>
+                Confirmation Requise
+            </h3>
+
+            <p id="purge-message" style="font-size: 1rem; margin-bottom: 20px; line-height: 1.6;"></p>
+
+            <div class="warning-box"
+                style="background: #FEF2F2; border: 2px solid #DC2626; padding: 20px; border-radius: 12px; margin: 20px 0;">
+                <h4
+                    style="color: #991B1B; font-weight: 600; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                    <i data-lucide="alert-circle" size="20"></i>
+                    ATTENTION - Action Irréversible
+                </h4>
+                <p style="color: #7F1D1D; font-size: 0.9rem; margin-bottom: 12px;">Cette action va supprimer :</p>
+                <ul style="color: #7F1D1D; font-size: 0.9rem; margin: 0; padding-left: 24px;">
+                    <li>✗ Tous les fichiers de tous les utilisateurs</li>
+                    <li>✗ Toutes les clés cryptographiques</li>
+                    <li>✗ Tous les historiques de versions</li>
+                </ul>
+                <p style="color: #7F1D1D; font-size: 0.9rem; margin-top: 12px; margin-bottom: 0; font-weight: 600;">
+                    ⚠️ Les utilisateurs devront re-générer leurs clés et re-uploader leurs fichiers.
+                </p>
+            </div>
+
+            <div id="affected-users" style="margin: 20px 0;"></div>
+
+            <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button onclick="confirmPurge()" class="btn"
+                    style="flex: 1; background: var(--danger); color: white; padding: 12px; font-weight: 600;">
+                    <i data-lucide="trash-2" size="16" style="margin-right: 6px;"></i>
+                    Confirmer et Tout Supprimer
+                </button>
+                <button onclick="cancelChange()" class="btn btn-secondary" style="flex: 1; padding: 12px;">
+                    Annuler
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .mode-option input:checked+.mode-card {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .mode-card {
+        cursor: pointer;
+    }
+
+    .mode-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+    }
+
+    .modal-content {
+        position: relative;
+        background: var(--bg-secondary);
+        border-radius: 16px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        z-index: 1001;
+    }
+</style>
+
+<script>
+    function requestModeChange() {
+        const mode = document.querySelector('input[name="security_mode"]:checked').value;
+        const currentMode = '{{ current_mode }}';
+
+        if (mode === currentMode) {
+            alert('ℹ️ Le mode sélectionné est déjà actif.');
+            return;
+        }
+
+        // Afficher loader
+        const btn = document.getElementById('change-mode-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader" size="18" class="spin" style="margin-right: 8px;"></i> Vérification...';
+        lucide.createIcons();
+
+        fetch('/admin/security/global-mode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `mode=${mode}&force_purge=false`
+        })
+            .then(r => r.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="settings" size="18" style="margin-right: 8px;"></i> Appliquer le changement';
+                lucide.createIcons();
+
+                if (data.action_required === 'confirm_purge') {
+                    showPurgeModal(data);
+                } else if (data.success) {
+                    alert('✅ ' + data.message);
+                    location.reload();
+                } else {
+                    alert('❌ Erreur : ' + data.message);
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="settings" size="18" style="margin-right: 8px;"></i> Appliquer le changement';
+                lucide.createIcons();
+                alert('❌ Erreur de connexion : ' + err.message);
+            });
+    }
+
+    function showPurgeModal(data) {
+        document.getElementById('purge-message').textContent = data.message;
+
+        const usersList = document.getElementById('affected-users');
+        usersList.innerHTML = `
+        <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 16px;">
+            <h4 style="font-weight: 600; margin-bottom: 8px; font-size: 0.95rem;">
+                <i data-lucide="users" size="16" style="margin-right: 6px;"></i>
+                Utilisateurs affectés (${data.affected_users.length})
+            </h4>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px;">
+                ${data.affected_users.map(u => `
+                    <span style="background: rgba(0,0,0,0.2); padding: 4px 12px; border-radius: 6px; font-size: 0.85rem;">
+                        ${u}
+                    </span>
+                `).join('')}
+            </div>
+        </div>
+    `;
+
+        document.getElementById('purge-modal').style.display = 'flex';
+        lucide.createIcons();
+    }
+
+    function confirmPurge() {
+        const mode = document.querySelector('input[name="security_mode"]:checked').value;
+
+        // Double confirmation
+        const confirmation = prompt('⚠️ Pour confirmer la suppression TOTALE, tapez "SUPPRIMER TOUT" (en majuscules) :');
+
+        if (confirmation !== 'SUPPRIMER TOUT') {
+            alert('❌ Annulé. Vous devez taper exactement "SUPPRIMER TOUT".');
+            return;
+        }
+
+        fetch('/admin/security/global-mode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `mode=${mode}&force_purge=true`
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    alert(`✅ ${data.message}\n\n🔄 Le système va maintenant redémarrer pour appliquer les changements...`);
+                    location.reload();
+                } else {
+                    alert('❌ Erreur : ' + data.message);
+                    cancelChange();
+                }
+            });
+    }
+
+    function cancelChange() {
+        document.getElementById('purge-modal').style.display = 'none';
+        // Remettre le mode actuel sélectionné
+        document.querySelector(`input[value="{{ current_mode }}"]`).checked = true;
+    }
+
+    // Initialiser Lucide icons
+    document.addEventListener('DOMContentLoaded', function () {
+        if (window.lucide) {
+            lucide.createIcons();
+        }
+
+        // Animation sur les cartes de mode
+        document.querySelectorAll('.mode-card').forEach(card => {
+            card.addEventListener('click', function () {
+                const radio = this.parentElement.querySelector('input[type="radio"]');
+                radio.checked = true;
+            });
+        });
+    });
+</script>
+
+{% endblock %}

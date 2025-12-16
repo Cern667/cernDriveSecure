@@ -1,0 +1,220 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Vue d'ensemble{% endblock %}
+{% block header_title %}Vue d'ensemble{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Responsive pour la grille de cartes */
+    @media (max-width: 640px) {
+        .dashboard-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+        }
+
+        .card {
+            padding: 16px !important;
+        }
+
+        .card-header {
+            padding: 12px 16px !important;
+        }
+
+        .card-title {
+            font-size: 1rem !important;
+        }
+
+        .upload-zone {
+            padding: 24px 16px !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block header_actions %}
+<button class="btn btn-primary"><i data-lucide="plus" size="18"></i>Nouveau Dossier </button>
+{% endblock %}
+
+{% block content %}
+
+<!-- Alert pour mode expert -->
+{% if security_level == 'maximum' and not is_admin %}
+<div class="alert alert-danger glass"
+    style="margin-bottom: var(--spacing-xl); border: 2px solid var(--danger); animation: pulse-border 2s ease-in-out infinite;">
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md);">
+        <div style="display: flex; align-items: center; gap: var(--spacing-md); flex: 1;">
+            <i data-lucide="shield-alert" size="32" style="color: var(--danger); flex-shrink: 0;"></i>
+            <div>
+                <div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 6px;">🔴 MODE EXPERT ACTIVÉ - ACTION
+                    REQUISE</div>
+                <div style="font-size: 0.95rem;">
+                    Téléchargez votre clé privée et conservez-la en lieu sûr.
+                    <strong>Sans cette clé, vous ne pourrez PLUS accéder à vos fichiers !</strong>
+                </div>
+            </div>
+        </div>
+        <a href="/download-private-key" class="btn btn-danger"
+            style="flex-shrink: 0; display: inline-flex; align-items: center; gap: 8px;">
+            <i data-lucide="download" size="18"></i>
+            TÉLÉCHARGER MA CLÉ PRIVÉE
+        </a>
+    </div>
+</div>
+
+<style>
+    @keyframes pulse-border {
+
+        0%,
+        100% {
+            border-color: var(--danger);
+        }
+
+        50% {
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+    }
+</style>
+{% endif %}
+
+<!-- Stats Grid -->
+<div
+    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--spacing-lg); margin-bottom: var(--spacing-xl);">
+    <!-- Storage Card -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><i data-lucide="hard-drive" class="text-primary"></i>Stockage </div>
+            <span class="badge badge-info">Actif</span>
+        </div>
+        <div style="padding: var(--spacing-lg);">
+            <div class="flex-between mb-md">
+                <span class="text-muted">Utilisé</span>
+                <span style="font-weight: 700; font-size: 24px;">{{ storage_used_mb }} MB</span>
+            </div>
+            <div class="progress-bar" style="height: 8px; margin-bottom: 8px;">
+                <div class="progress-fill" style="width: {{ storage_percent }}%;"></div>
+            </div>
+            <div class="flex-between text-muted" style="font-size: 12px;">
+                <span>0 GB</span>
+                <span>{{ storage_limit_gb }} GB</span>
+            </div>
+        </div>
+    </div>
+    <!-- Security Card -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><i data-lucide="shield-check" class="text-success"></i>Sécurité </div>
+            <span class="badge {% if security_level == 'maximum' %}badge-danger{% else %}badge-success{% endif %}">
+                {{ 'Maximum' if security_level == 'maximum' else 'Standard' }}
+            </span>
+        </div>
+        <div style="padding: var(--spacing-lg);">
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div class="flex-between">
+                    <span class="text-muted">Niveau</span>
+                    <span style="font-weight: 600;">{{ security_level.capitalize() }}</span>
+                </div>
+                <div class="flex-between">
+                    <span class="text-muted">Appareils</span>
+                    <a href="/devices-management"
+                        style="text-decoration: none; color: var(--primary-blue); font-weight: 600;">
+                        {{ devices_count }} {% if devices_count > 1 %}Actifs{% else %}Actif{% endif %} →
+                    </a>
+                </div>
+                <div class="flex-between">
+                    <span class="text-muted">Stockage</span>
+                    <span>{{ storage_used_mb }} / {{ storage_limit_gb * 1024 }} MB</span>
+                </div>
+            </div>
+            <a href="/devices-management" class="btn btn-ghost btn-sm"
+                style="width: 100%; margin-top: 16px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <i data-lucide="smartphone" size="16"></i>
+                Gérer les appareils
+            </a>
+        </div>
+    </div>
+    <!-- Quick Upload Card -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-title"><i data-lucide="upload-cloud" class="text-warning"></i>Upload Rapide </div>
+        </div>
+        <div style="padding: var(--spacing-lg); text-align: center;">
+            <a href="/restore" style="text-decoration: none; color: inherit; display: block;">
+                <div style="border: 2px dashed var(--border-color); border-radius: var(--radius-md); padding: 20px; cursor: pointer; transition: all 0.2s;"
+                    onmouseover="this.style.borderColor='var(--primary-blue)'; this.style.background='rgba(0,112,243,0.05)'"
+                    onmouseout="this.style.borderColor='var(--border-color)'; this.style.background='transparent'">
+                    <i data-lucide="file-plus" size="32" class="text-muted" style="margin-bottom: 10px;"></i>
+                    <div style="font-weight: 500; margin-bottom: 4px;">Glisser-déposer</div>
+                    <div class="text-muted" style="font-size: 12px;">ou cliquer pour parcourir</div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Activity -->
+<div class="card">
+    <div class="card-header">
+        <div class="card-title"><i data-lucide="clock" class="text-muted"></i>Activité Récente </div>
+        <a href="/my-logs" class="btn btn-ghost btn-sm">Voir tout</a>
+    </div>
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Action</th>
+                    <th>Détails</th>
+                    <th>IP</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if recent_activities %}
+                {% for activity in recent_activities %}
+                <tr>
+                    <td>
+                        <div class="flex-center" style="justify-content: flex-start; gap: 10px;">
+                            {% if activity.action == 'LOGIN' %}
+                            <i data-lucide="log-in" size="16" class="text-success"></i>
+                            {% elif activity.action == 'FILE_UPLOAD' %}
+                            <i data-lucide="upload" size="16" class="text-primary"></i>
+                            {% elif activity.action == 'FILE_DOWNLOAD' %}
+                            <i data-lucide="download" size="16" class="text-info"></i>
+                            {% elif activity.action == 'FOLDER_DOWNLOAD' %}
+                            <i data-lucide="folder-down" size="16" class="text-info"></i>
+                            {% elif 'FAILED' in activity.action %}
+                            <i data-lucide="alert-circle" size="16" class="text-danger"></i>
+                            {% else %}
+                            <i data-lucide="activity" size="16" class="text-muted"></i>
+                            {% endif %}
+                            <span style="font-weight: 500;">{{ activity.action.replace('_', ' ').title() }}</span>
+                        </div>
+                    </td>
+                    <td class="text-muted"
+                        style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {{ activity.details if activity.details else '-' }}
+                    </td>
+                    <td class="text-muted" style="font-family: 'JetBrains Mono', monospace; font-size: 12px;">
+                        {{ activity.ip_address }}
+                    </td>
+                    <td class="text-muted" style="font-size: 12px;">
+                        {{ activity.timestamp[11:16] if activity.timestamp else '-' }}
+                    </td>
+                </tr>
+                {% endfor %}
+                {% else %}
+                <tr>
+                    <td colspan="4" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <i data-lucide="inbox" size="32" style="opacity: 0.3; margin-bottom: 10px;"></i>
+                        <div>Aucune activité récente</div>
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/dashboard-interactions.js') }}"></script>
+{% endblock %}
