@@ -347,13 +347,33 @@ async function decryptAesKeyWithPrivateKey(encryptedData, privateKey) {
         []
     );
 
-    // Dériver le secret partagé
-    const sharedSecret = await window.crypto.subtle.deriveKey(
+    // Dériver le secret partagé ECDH (bits bruts)
+    const sharedSecretBits = await window.crypto.subtle.deriveBits(
         {
             name: "ECDH",
             public: ephemeralPublicKey
         },
         privateKey,
+        256
+    );
+
+    // Appliquer HKDF-SHA256 (comme côté serveur Python)
+    const hkdfKey = await window.crypto.subtle.importKey(
+        "raw",
+        sharedSecretBits,
+        "HKDF",
+        false,
+        ["deriveKey"]
+    );
+
+    const derivedKey = await window.crypto.subtle.deriveKey(
+        {
+            name: "HKDF",
+            hash: "SHA-256",
+            salt: new Uint8Array(0), // Pas de salt (comme Python)
+            info: new TextEncoder().encode("nas-aes-key-encryption")
+        },
+        hkdfKey,
         {
             name: "AES-GCM",
             length: 256
@@ -368,7 +388,7 @@ async function decryptAesKeyWithPrivateKey(encryptedData, privateKey) {
             name: "AES-GCM",
             iv: iv
         },
-        sharedSecret,
+        derivedKey,
         encryptedAesKey
     );
 

@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scanner QR - Autoriser Appareil</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global-theme.css') }}">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #ffffff;
+        }
+
+        .scanner-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 48px;
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 32px;
+        }
+
+        #video {
+            width: 100%;
+            max-width: 400px;
+            border-radius: 16px;
+            margin: 24px auto;
+            display: none;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+        }
+
+        #video.active {
+            display: block;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+        }
+
+        .status {
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 24px;
+            font-weight: 600;
+        }
+
+        .status.waiting {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .status.success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .instructions {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 24px 0;
+            text-align: left;
+        }
+
+        .instructions h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #3b82f6;
+        }
+
+        .instructions ol {
+            margin: 0;
+            padding-left: 20px;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.8;
+        }
+
+        .canvas-container {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="scanner-container">
+        <h1>📱 Scanner un Appareil</h1>
+        <p class="subtitle">Autorisez un nouvel appareil en scannant son QR code</p>
+
+        <div class="instructions">
+            <h3>📖 Instructions</h3>
+            <ol>
+                <li>Cliquez sur "Activer la caméra"</li>
+                <li>Autorisez l'accès à la caméra</li>
+                <li>Pointez vers le QR code affiché sur le nouvel appareil</li>
+                <li>L'autorisation se fera automatiquement au scan</li>
+            </ol>
+        </div>
+
+        <button id="startBtn" class="btn" onclick="startScanning()">📷 Activer la Caméra</button>
+        <button id="stopBtn" class="btn" onclick="stopScanning()" style="display:none;">⏹️ Arrêter</button>
+
+        <video id="video" autoplay></video>
+
+        <div class="canvas-container">
+            <canvas id="canvas"></canvas>
+        </div>
+
+        <div class="status waiting" id="status">
+            En attente...
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script src="{{ url_for('static', filename='js/device_crypto.js') }}"></script>
+    <script>
+        let stream = null;
+        let scanning = false;
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let ctx = canvas.getContext('2d');
+
+        async function startScanning() {
+            try {
+                document.getElementById('status').textContent = '📷 Demande accès caméra...';
+                document.getElementById('status').className = 'status waiting';
+
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' }
+                });
+
+                video.srcObject = stream;
+                video.classList.add('active');
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'inline-block';
+
+                scanning = true;
+                document.getElementById('status').textContent = '🔍 Scannez le QR code...';
+
+                requestAnimationFrame(tick);
+            } catch (err) {
+                console.error('Erreur caméra:', err);
+                document.getElementById('status').textContent = '❌ Impossible d\'accéder à la caméra';
+                document.getElementById('status').className = 'status error';
+            }
+        }
+
+        function stopScanning() {
+            scanning = false;
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            video.classList.remove('active');
+            document.getElementById('startBtn').style.display = 'inline-block';
+            document.getElementById('stopBtn').style.display = 'none';
+            document.getElementById('status').textContent = 'En attente...';
+            document.getElementById('status').className = 'status waiting';
+        }
+
+        function tick() {
+            if (!scanning) return;
+
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvas.height = video.videoHeight;
+                canvas.width = video.videoWidth;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                if (code) {
+                    console.log('QR détecté:', code.data);
+                    scanning = false;
+                    processQRCode(code.data);
+                } else {
+                    requestAnimationFrame(tick);
+                }
+            } else {
+                requestAnimationFrame(tick);
+            }
+        }
+
+        async function processQRCode(qrData) {
+            try {
+                document.getElementById('status').textContent = '⚙️ Traitement...';
+                document.getElementById('status').className = 'status waiting';
+
+                // Parser QR data
+                const data = JSON.parse(qrData);
+                const { session_id, new_device_pubkey, timestamp } = data;
+
+                console.log('Données QR:', data);
+
+                // Récupérer notre device_id
+                const devices = await fetch('/api/devices').then(r => r.json());
+                if (!devices.success || devices.devices.length === 0) {
+                    throw new Error('Aucun appareil trouvé');
+                }
+
+                const myDeviceId = devices.devices[0].device_id;
+
+                // Créer message d'autorisation
+                const message = `AUTHORIZE_DEVICE|${session_id}|${new_device_pubkey}|${timestamp}`;
+
+                // Signer avec notre clé appareil
+                const signature = await DeviceCrypto.signWithDeviceKey(message);
+
+                console.log('Signature générée:', signature);
+
+                // Autoriser l'appareil
+                document.getElementById('status').textContent = '✍️ Autorisation...';
+
+                const response = await fetch('/api/authorize-device', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: session_id,
+                        signature: signature,
+                        signer_device_id: myDeviceId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('status').textContent = '✅ Appareil autorisé !';
+                    document.getElementById('status').className = 'status success';
+                    stopScanning();
+
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 2000);
+                } else {
+                    throw new Error(result.error || 'Erreur autorisation');
+                }
+
+            } catch (err) {
+                console.error('Erreur:', err);
+                document.getElementById('status').textContent = `❌ Erreur : ${err.message}`;
+                document.getElementById('status').className = 'status error';
+                scanning = true;
+                requestAnimationFrame(tick);
+            }
+        }
+    </script>
+</body>
+
+</html>

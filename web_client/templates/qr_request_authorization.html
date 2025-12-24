@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autoriser un Appareil - CernCloud.Nas</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global-theme.css') }}">
+
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: var(--spacing-lg);
+        }
+
+        .qr-container {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 48px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: var(--shadow-lg);
+            text-align: center;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .brand-logo i {
+            color: var(--primary-blue);
+        }
+
+        .brand-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-header);
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            color: var(--text-header);
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            margin-bottom: var(--spacing-xl);
+            font-size: 15px;
+        }
+
+        .qr-wrapper {
+            background: white;
+            padding: 24px;
+            border-radius: var(--radius-md);
+            display: inline-block;
+            margin: var(--spacing-xl) auto;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        #qrImage {
+            max-width: 300px;
+            width: 100%;
+            height: auto;
+            image-rendering: pixelated;
+        }
+
+        .timer {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--warning-color);
+            margin: var(--spacing-lg) 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+        }
+
+        .timer.expired {
+            color: var(--danger-color);
+        }
+
+        .instructions {
+            background: rgba(0, 112, 243, 0.1);
+            border: 1px solid rgba(0, 112, 243, 0.3);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-lg);
+            margin-top: var(--spacing-xl);
+            text-align: left;
+        }
+
+        .instructions h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: var(--spacing-md);
+            color: var(--primary-blue);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .instructions ol {
+            margin: 0;
+            padding-left: 20px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        .instructions li {
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .status {
+            padding: 12px 24px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            margin-top: var(--spacing-lg);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .status.waiting {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning-color);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .status.success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success-color);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger-color);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-primary {
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+            margin-top: var(--spacing-lg);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-blue-hover);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .loading {
+            display: none;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid var(--border-color);
+            border-top: 3px solid var(--primary-blue);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: var(--spacing-lg) auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .back-link {
+            margin-top: var(--spacing-xl);
+        }
+
+        .back-link a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            transition: color var(--transition-speed);
+        }
+
+        .back-link a:hover {
+            color: var(--primary-blue);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="qr-container">
+        <div class="brand-logo">
+            <i data-lucide="shield-check" size="32"></i>
+            <span class="brand-text">CernCloud<span style="color: var(--primary-blue);">.Nas</span></span>
+        </div>
+
+        <h1>🔐 Nouvel Appareil</h1>
+        <p class="subtitle">Scannez ce QR code depuis votre appareil de confiance</p>
+
+        <div class="loading active">
+            <div class="spinner"></div>
+            <p style="color: var(--text-muted); margin-top: var(--spacing-md);">Génération du QR code...</p>
+        </div>
+
+        <div id="qrDisplay" style="display: none;">
+            <div class="qr-wrapper">
+                <img id="qrImage" alt="QR Code" />
+            </div>
+
+            <div class="timer" id="timer">
+                <i data-lucide="timer" size="20"></i>
+                Expire dans <span id="countdown">60</span>s
+            </div>
+
+            <div class="status waiting" id="status">
+                <i data-lucide="loader-2" size="16" class="spin-icon"></i>
+                En attente du scan...
+            </div>
+
+            <div class="instructions">
+                <h3>
+                    <i data-lucide="smartphone" size="18"></i>
+                    Instructions
+                </h3>
+                <ol>
+                    <li>Ouvrez l'application sur votre appareil de confiance</li>
+                    <li>Allez dans "Connexion appareil" → "Autoriser un appareil"</li>
+                    <li>Scannez ce QR code avec votre appareil de confiance</li>
+                    <li>Confirmez l'autorisation sur votre appareil de confiance</li>
+                </ol>
+            </div>
+
+            <button class="btn-primary" onclick="refreshQR()">
+                <i data-lucide="refresh-cw" size="20"></i>
+                Générer un nouveau QR
+            </button>
+        </div>
+
+        <div class="back-link">
+            <a href="/logout">
+                <i data-lucide="arrow-left" size="14"></i>
+                Retour à la connexion
+            </a>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/device_crypto.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/device_fingerprint.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/crypto_client.js') }}"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        let sessionId = null;
+        let countdownInterval = null;
+        let pollInterval = null;
+
+        async function requestQRAuthorization() {
+            try {
+                // 1. Générer clés appareil
+                const keyPair = await DeviceCrypto.generateDeviceKeyPair();
+                await DeviceCrypto.storeDeviceKeys(keyPair.privateKey, keyPair.publicKey);
+                const devicePubkey = await DeviceCrypto.exportDevicePublicKey();
+
+                // 2. Récupérer fingerprint
+                const fingerprint = await generateFingerprint();
+
+                // 3. Demander session
+                const response = await fetch('/api/request-device-authorization', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        device_fingerprint: fingerprint,
+                        device_public_key_ed25519: devicePubkey,
+                        device_info: {
+                            device_name: navigator.userAgent.includes('Mobile') ? 'Mobile' : 'Desktop',
+                            user_agent: navigator.userAgent,
+                            screen_info: `${screen.width}x${screen.height}`
+                        }
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    sessionId = result.session_id;
+                    await generateQR(sessionId);
+                    startCountdown(60);
+                    startPolling();
+                } else {
+                    showError("Échec de la demande d'autorisation");
+                }
+
+            } catch (error) {
+                console.error("Erreur:", error);
+                showError("Erreur lors de la génération du QR code");
+            }
+        }
+
+        async function generateQR(sessionId) {
+            try {
+                const response = await fetch('/api/generate-qr-authorization', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ session_id: sessionId })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.querySelector('.loading').classList.remove('active');
+                    document.getElementById('qrDisplay').style.display = 'block';
+                    document.getElementById('qrImage').src = result.qr_code_dataurl;
+                    // Refresh icons after showing new content
+                    lucide.createIcons();
+                }
+            } catch (error) {
+                showError("Erreur génération QR");
+            }
+        }
+
+        function startCountdown(seconds) {
+            let remaining = seconds;
+            const countdownEl = document.getElementById('countdown');
+            const timerEl = document.getElementById('timer');
+
+            countdownInterval = setInterval(() => {
+                remaining--;
+                countdownEl.textContent = remaining;
+
+                if (remaining <= 10) {
+                    timerEl.classList.add('expired');
+                }
+
+                if (remaining <= 0) {
+                    clearInterval(countdownInterval);
+                    showError("QR code expiré");
+                    const statusEl = document.getElementById('status');
+                    statusEl.innerHTML = '<i data-lucide="x-circle" size="16"></i> Session expirée';
+                    statusEl.className = "status error";
+                    lucide.createIcons();
+                }
+            }, 1000);
+        }
+
+        function startPolling() {
+            pollInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`/api/check-authorization-status?session_id=${sessionId}`);
+                    const result = await response.json();
+
+                    if (result.status === 'authorized') {
+                        clearInterval(pollInterval);
+                        clearInterval(countdownInterval);
+                        showSuccess();
+                    }
+                } catch (error) {
+                    console.error("Erreur polling:", error);
+                }
+            }, 2000); // Poll toutes les 2 secondes
+        }
+
+        function showSuccess() {
+            const statusEl = document.getElementById('status');
+            statusEl.innerHTML = '<i data-lucide="check-circle" size="16"></i> Appareil autorisé !';
+            statusEl.className = "status success";
+            lucide.createIcons();
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 2000);
+        }
+
+        function showError(message) {
+            document.querySelector('.loading').classList.remove('active');
+            document.getElementById('qrDisplay').style.display = 'block';
+            const statusEl = document.getElementById('status');
+            statusEl.innerHTML = `<i data-lucide="alert-circle" size="16"></i> ${message}`;
+            statusEl.className = "status error";
+            lucide.createIcons();
+        }
+
+        function refreshQR() {
+            clearInterval(countdownInterval);
+            clearInterval(pollInterval);
+            document.querySelector('.loading').classList.add('active');
+            document.getElementById('qrDisplay').style.display = 'none';
+            requestQRAuthorization();
+        }
+
+        // Démarrer au chargement
+        window.addEventListener('DOMContentLoaded', () => {
+            requestQRAuthorization();
+        });
+    </script>
+
+    <style>
+        /* Animation pour l'icône de chargement */
+        .spin-icon {
+            animation: spin 1s linear infinite;
+        }
+    </style>
+</body>
+
+</html>

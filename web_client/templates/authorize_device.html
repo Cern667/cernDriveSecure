@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autoriser un Appareil</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global-theme.css') }}">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', sans-serif;
+            color: #ffffff;
+            padding: 20px;
+        }
+
+        .auth-container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 48px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            text-align: center;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 32px;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 4px;
+            border-radius: 12px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.6);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .code-input-container {
+            text-align: center;
+        }
+
+        .code-input {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin: 24px 0;
+        }
+
+        .code-digit {
+            width: 50px;
+            height: 60px;
+            text-align: center;
+            font-size: 28px;
+            font-weight: 700;
+            border: 2px solid rgba(59, 130, 246, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            color: white;
+            font-family: 'Courier New', monospace;
+        }
+
+        .code-digit:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 16px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            padding: 12px 20px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .status.show {
+            display: block;
+        }
+
+        .status.success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .status.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+
+        .info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 20px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        #video {
+            width: 100%;
+            border-radius: 12px;
+            margin: 16px 0;
+            display: none;
+        }
+
+        #video.active {
+            display: block;
+        }
+
+        .scanner-actions {
+            display: flex;
+            gap: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-container">
+        <h1>🔐 Autoriser un Appareil</h1>
+        <p class="subtitle">Connectez un nouvel appareil à votre compte</p>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('code')">📱 Code</button>
+            <button class="tab" onclick="switchTab('qr')">📷 Scanner QR</button>
+        </div>
+
+        <!-- TAB: Code Entry -->
+        <div id="codeTab" class="tab-content active">
+            <div class="code-input-container">
+                <p style="margin-bottom: 16px; color: rgba(255, 255, 255, 0.8);">
+                    Entrez le code affiché sur le nouvel appareil
+                </p>
+
+                <div class="code-input">
+                    <input type="text" class="code-digit" maxlength="1" id="digit1" autofocus>
+                    <input type="text" class="code-digit" maxlength="1" id="digit2">
+                    <input type="text" class="code-digit" maxlength="1" id="digit3">
+                    <input type="text" class="code-digit" maxlength="1" id="digit4">
+                    <input type="text" class="code-digit" maxlength="1" id="digit5">
+                    <input type="text" class="code-digit" maxlength="1" id="digit6">
+                </div>
+
+                <button class="btn" onclick="authorizeWithCode()" id="submitBtn">
+                    ✅ Autoriser l'appareil
+                </button>
+
+                <div class="info">
+                    💡 Le code est valide pendant 60 secondes
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB: QR Scanner -->
+        <div id="qrTab" class="tab-content">
+            <p style="margin-bottom: 16px; text-align: center; color: rgba(255, 255, 255, 0.8);">
+                Scannez le QR code affiché sur le nouvel appareil
+            </p>
+
+            <video id="video" autoplay></video>
+            <canvas id="canvas" style="display:none;"></canvas>
+
+            <div class="scanner-actions">
+                <button class="btn" onclick="startScanner()" id="startScanBtn">
+                    📷 Activer la caméra
+                </button>
+                <button class="btn" onclick="stopScanner()" id="stopScanBtn" style="display:none;">
+                    ⏹️ Arrêter
+                </button>
+            </div>
+
+            <div class="info">
+                💡 Autorisez l'accès à votre caméra pour scanner le QR code
+            </div>
+        </div>
+
+        <div class="status" id="status"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+    <script>
+        // ========== CODE ENTRY ==========
+        const digits = ['digit1', 'digit2', 'digit3', 'digit4', 'digit5', 'digit6'];
+
+        digits.forEach((id, index) => {
+            const input = document.getElementById(id);
+
+            input.addEventListener('input', (e) => {
+                if (e.target.value && index < digits.length - 1) {
+                    document.getElementById(digits[index + 1]).focus();
+                }
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && !e.target.value && index > 0) {
+                    document.getElementById(digits[index - 1]).focus();
+                }
+            });
+        });
+
+        async function authorizeWithCode() {
+            const code = digits.map(id => document.getElementById(id).value).join('');
+
+            if (code.length !== 6) {
+                showStatus('error', '❌ Veuillez entrer les 6 chiffres');
+                return;
+            }
+
+            document.getElementById('submitBtn').disabled = true;
+
+            try {
+                const response = await fetch('/api/authorize-with-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ auth_code: code })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showStatus('success', '✅ Appareil autorisé avec succès !');
+                    setTimeout(() => window.location.href = '/', 2000);
+                } else {
+                    showStatus('error', `❌ ${result.error || 'Code invalide'}`);
+                    document.getElementById('submitBtn').disabled = false;
+                }
+            } catch (error) {
+                showStatus('error', '❌ Erreur réseau');
+                document.getElementById('submitBtn').disabled = false;
+            }
+        }
+
+        // ========== QR SCANNER ==========
+        let stream = null;
+        let scanning = false;
+
+        async function startScanner() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                document.getElementById('video').srcObject = stream;
+                document.getElementById('video').classList.add('active');
+                document.getElementById('startScanBtn').style.display = 'none';
+                document.getElementById('stopScanBtn').style.display = 'block';
+                scanning = true;
+                requestAnimationFrame(scanQR);
+            } catch (error) {
+                showStatus('error', '❌ Impossible d\'accéder à la caméra');
+            }
+        }
+
+        function stopScanner() {
+            scanning = false;
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+            }
+            document.getElementById('video').classList.remove('active');
+            document.getElementById('startScanBtn').style.display = 'block';
+            document.getElementById('stopScanBtn').style.display = 'none';
+        }
+
+        function scanQR() {
+            if (!scanning) return;
+
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+
+            if (video.readyState === video.HAVE_ENOUGH_DATA) {
+                canvas.height = video.videoHeight;
+                canvas.width = video.videoWidth;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+                if (code) {
+                    scanning = false;
+                    processQRCode(code.data);
+                } else {
+                    requestAnimationFrame(scanQR);
+                }
+            } else {
+                requestAnimationFrame(scanQR);
+            }
+        }
+
+        async function processQRCode(qrData) {
+            try {
+                const data = JSON.parse(qrData);
+                const code = data.auth_code;
+
+                // Remplir automatiquement les champs
+                digits.forEach((id, i) => {
+                    document.getElementById(id).value = code[i] || '';
+                });
+
+                // Autoriser automatiquement
+                await authorizeWithCode();
+
+            } catch (error) {
+                showStatus('error', '❌ QR code invalide');
+            }
+        }
+
+        // ========== UI HELPERS ==========
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            if (tab === 'code') {
+                document.querySelector('.tab:first-child').classList.add('active');
+                document.getElementById('codeTab').classList.add('active');
+                stopScanner();
+            } else {
+                document.querySelector('.tab:last-child').classList.add('active');
+                document.getElementById('qrTab').classList.add('active');
+            }
+        }
+
+        function showStatus(type, message) {
+            const status = document.getElementById('status');
+            status.className = `status ${type} show`;
+            status.textContent = message;
+        }
+    </script>
+</body>
+
+</html>

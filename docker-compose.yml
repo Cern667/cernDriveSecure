@@ -4,9 +4,9 @@ services:
     container_name: nas_ldap
     platform: linux/amd64
     environment:
-      LDAP_ORGANISATION: "${LDAP_ORGANISATION:-NAS Company}"
-      LDAP_DOMAIN: "${LDAP_DOMAIN:-nas.local}"
-      LDAP_ADMIN_PASSWORD: "${LDAP_ADMIN_PASSWORD:-admin}"
+      LDAP_ORGANISATION: "${LDAP_ORGANISATION}"
+      LDAP_DOMAIN: "${LDAP_DOMAIN}"
+      LDAP_ADMIN_PASSWORD: "${LDAP_ADMIN_PASSWORD}"
       LDAP_TLS: "false"
     ports:
       - "389:389"
@@ -27,8 +27,8 @@ services:
     platform: linux/amd64
     container_name: nas_ldap_init
     environment:
-      LDAP_ADMIN_PASSWORD: "${LDAP_ADMIN_PASSWORD:-admin}"
-      LDAP_BASE_DN: "${LDAP_BASE_DN:-dc=nas,dc=local}"
+      LDAP_ADMIN_PASSWORD: "${LDAP_ADMIN_PASSWORD}"
+      LDAP_BASE_DN: "${LDAP_BASE_DN}"
     volumes:
       - ./ldap_bootstrap:/ldap_bootstrap:ro
     networks:
@@ -61,7 +61,7 @@ services:
       target: server
     container_name: nas_server
     environment:
-      ADMIN_USERNAME: "${ADMIN_USERNAME:-admin}"
+      ADMIN_USERNAME: "${ADMIN_USERNAME}"
     ports:
       - "65432:65432"
     volumes:
@@ -78,20 +78,21 @@ services:
       target: client
     container_name: nas_client
     environment:
-      FLASK_PORT: "5000"
+      FLASK_PORT: "${FLASK_PORT}"
       FLASK_SECRET_KEY: "${SECRET_KEY}"
-      ADMIN_USERNAME: "${ADMIN_USERNAME:-admin}"
+      ADMIN_USERNAME: "${ADMIN_USERNAME}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
       FLASK_USE_MOCK_LDAP: "False"
 
       # ---------------- LDAP CONFIG ----------------
       FLASK_LDAP_HOST: "ldap://ldap:389"
-      FLASK_LDAP_BASE_DN: "${LDAP_BASE_DN:-dc=nas,dc=local}"
+      FLASK_LDAP_BASE_DN: "${LDAP_BASE_DN}"
       FLASK_LDAP_USER_DN: "ou=users"
       FLASK_LDAP_USER_RDN_ATTR: "uid"
       FLASK_LDAP_USER_SEARCH_FILTER: "(uid={username})"
       FLASK_LDAP_USER_LOGIN_ATTR: "uid"
-      FLASK_LDAP_BIND_USER_DN: "cn=admin,${LDAP_BASE_DN:-dc=nas,dc=local}"
-      FLASK_LDAP_BIND_USER_PASSWORD: "${LDAP_ADMIN_PASSWORD:-admin}"
+      FLASK_LDAP_BIND_USER_DN: "cn=admin,${LDAP_BASE_DN}"
+      FLASK_LDAP_BIND_USER_PASSWORD: "${LDAP_ADMIN_PASSWORD}"
       FLASK_LDAP_USE_SSL: "False"
       FLASK_LDAP_PORT: "389"
       # -------------------------------------------------

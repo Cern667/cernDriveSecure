@@ -153,23 +153,24 @@ def is_device_authorized(username: str, device_fingerprint: str) -> bool:
 def get_encrypted_private_key(username: str) -> Optional[Dict]:
     """
     Récupère la clé privée chiffrée d'un utilisateur
-    
+
     Args:
         username: Nom d'utilisateur
-    
+
     Returns:
-        Dict avec encrypted_key, salt, iv ou None
+        Dict avec encrypted_key, salt, iv, created_at ou None
     """
     devices = _load_devices()
-    
+
     if username not in devices:
         return None
-    
+
     user_data = devices[username]
     return {
         "encrypted_private_key": user_data.get("encrypted_private_key"),
         "salt": user_data.get("salt"),
-        "iv": user_data.get("iv")
+        "iv": user_data.get("iv"),
+        "created_at": user_data.get("created_at")
     }
 
 def list_user_devices(username: str) -> List[Dict]:
@@ -230,18 +231,85 @@ def delete_user_devices(username: str):
         _save_devices(devices)
         print(f"🗑️ Appareils supprimés pour {username}")
 
+def get_user_key_type(username: str) -> Optional[str]:
+    """
+    Détecte le type de clé publique d'un utilisateur
+
+    Args:
+        username: Nom d'utilisateur
+
+    Returns:
+        'X25519' si clé X25519 (mode maximum)
+        'EC' si clé EC (mode standard)
+        None si pas de clé
+    """
+    public_key_path = f'/app/user_keys/{username}/public_key.pem'
+
+    if not os.path.exists(public_key_path):
+        return None
+
+    try:
+        with open(public_key_path, 'rb') as f:
+            key_data = f.read()
+
+        # Les clés X25519 sont très courtes (~44 bytes en base64)
+        # Les clés EC P-256 sont plus longues (~91 bytes en base64)
+        # On peut aussi vérifier le contenu
+
+        if b'MCowBQYDK2VuAyEA' in key_data or len(key_data) < 100:
+            # Format typique X25519: MCowBQYDK2VuAyEA...
+            return 'X25519'
+        elif b'MFkwEwYHKoZIzj0' in key_data:
+            # Format typique EC: MFkwEwYHKoZIzj0...
+            return 'EC'
+        else:
+            # Essayer de déterminer par la taille
+            import base64
+            lines = key_data.decode().strip().split('\n')
+            if len(lines) >= 3:
+                b64_data = ''.join(lines[1:-1])
+                if len(b64_data) < 60:
+                    return 'X25519'
+                else:
+                    return 'EC'
+    except Exception as e:
+        print(f"⚠️ Erreur détection type clé pour {username}: {e}")
+        return None
+
+    return None
+
 def has_registered_key(username: str) -> bool:
     """
     Vérifie si un utilisateur a déjà enregistré une clé privée chiffrée
-    
+
     Args:
         username: Nom d'utilisateur
-    
+
     Returns:
         True si une clé est enregistrée, False sinon
     """
     devices = _load_devices()
     return username in devices and "encrypted_private_key" in devices[username]
+
+def has_compatible_keys(username: str, expected_mode: str) -> bool:
+    """
+    Vérifie si l'utilisateur a des clés compatibles avec le mode de sécurité attendu
+
+    Args:
+        username: Nom d'utilisateur
+        expected_mode: 'maximum' ou 'normal'
+
+    Returns:
+        True si les clés sont compatibles, False sinon
+    """
+    key_type = get_user_key_type(username)
+
+    if key_type is None:
+        return False
+
+    # Les deux modes acceptent EC (P-256) et X25519
+    # Car Web Crypto API génère P-256 en fallback si X25519 n'est pas supporté
+    return key_type in ['EC', 'X25519']
 
 def purge_all_devices():
     """Supprime tous les appareils (lors d'un changement de mode de sécurité)"""

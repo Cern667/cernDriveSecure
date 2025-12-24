@@ -245,19 +245,22 @@ class SecurityManager:
         if security_level == SECURITY_LEVEL_STANDARD:
             return True, "Accès autorisé (mode standard)"
 
-        # Mode sécurité maximale : vérifier l'appareil
-        if not self.is_device_registered(username, device_fingerprint):
-            return False, "Appareil non autorisé. Votre clé privée doit être sur cet appareil."
+        # Mode sécurité maximale : vérifier que la clé privée chiffrée existe sur le serveur
+        # En mode "maximum avec serveur", la clé privée chiffrée est stockée dans authorized_devices.json
+        # L'utilisateur déchiffre côté client avec son mot de passe
 
-        # Vérifier que l'appareil possède bien la clé privée
-        device_info = self.devices_registry[username].get(device_fingerprint, {})
-        if not device_info.get('has_private_key', False):
-            return False, "Clé privée manquante sur cet appareil."
+        # Vérifier si l'utilisateur a une clé privée chiffrée stockée sur le serveur
+        import sys
+        import os
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from lib.auth.device_manager import has_registered_key
 
-        # Mettre à jour la dernière connexion
-        self.update_device_last_seen(username, device_fingerprint)
+        if not has_registered_key(username):
+            return False, "Clé privée non configurée. Veuillez configurer vos clés de chiffrement."
 
-        return True, "Accès autorisé (mode sécurité maximale)"
+        # Si l'utilisateur a une clé chiffrée sur le serveur, l'accès est autorisé
+        # (il devra entrer son mot de passe côté client pour déchiffrer)
+        return True, "Accès autorisé (mode sécurité maximale avec serveur)"
 
     def mark_device_has_key(self, username: str, device_fingerprint: str):
         """Marque qu'un appareil possède la clé privée"""

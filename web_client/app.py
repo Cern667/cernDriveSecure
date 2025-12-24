@@ -298,23 +298,75 @@ def login():
                 # USERS : Vérifier le niveau de sécurité
                 security_mgr = get_security_manager()
                 security_level = security_mgr.get_user_security_level(username)
+
+                # ✅ Si l'utilisateur n'a pas encore de niveau défini, utiliser le mode global
+                if username not in security_mgr.users_security:
+                    import sys
+                    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    if parent_dir not in sys.path:
+                        sys.path.insert(0, parent_dir)
+                    from lib.monitoring.admin_security import get_current_mode
+
+                    global_mode = get_current_mode()
+                    security_level = SECURITY_LEVEL_MAXIMUM if global_mode == 'maximum' else SECURITY_LEVEL_STANDARD
+
+                    # Enregistrer le niveau pour cet utilisateur
+                    security_mgr.set_user_security_level(username, security_level)
+                    print(f"[SECURITY] {username} → Nouveau user, niveau hérité du mode global: {security_level}")
+                else:
+                    print(f"[SECURITY] {username} → Niveau: {security_level}")
                 
                 if security_level == SECURITY_LEVEL_MAXIMUM:
                     # Mode maximum : zero-knowledge obligatoire
                     import sys
                     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-                    from lib.auth.device_manager import has_registered_key
-                    
+                    from lib.auth.device_manager import has_registered_key, has_compatible_keys, get_user_key_type
+
                     has_keys = has_registered_key(username)
-                    
+
+                    # ✅ IMPORTANT: Vérifier que les clés sont du bon type (X25519 pour mode maximum)
+                    if has_keys:
+                        key_type = get_user_key_type(username)
+                        is_compatible = has_compatible_keys(username, 'maximum')
+
+                        if not is_compatible:
+                            # Clés incompatibles (EC au lieu de X25519) → Forcer régénération
+                            print(f"[SECURITY MAX] ⚠️ {username} → Clés incompatibles (type: {key_type}, attendu: X25519)")
+                            print(f"[SECURITY MAX] {username} → Redirection vers setup pour régénération")
+
+                            # Supprimer les anciennes clés incompatibles
+                            user_key_dir = os.path.join('/app/user_keys', username)
+                            if os.path.exists(user_key_dir):
+                                import shutil
+                                shutil.rmtree(user_key_dir)
+                                os.makedirs(user_key_dir)
+                                print(f"[SECURITY MAX] 🗑️ Anciennes clés {key_type} supprimées pour {username}")
+
+                            return redirect(url_for('setup_keys'))
+
                     if not has_keys:
                         # Premier appareil → Setup zero-knowledge
                         print(f"[SECURITY MAX] {username} → Redirection vers setup zero-knowledge")
                         return redirect(url_for('setup_keys'))
                     else:
-                        # User a déjà des clés → Vérifier l'appareil (QR ou dashboard)
-                        print(f"[SECURITY MAX] {username} → Vérification appareil")
-                        return redirect(url_for('generate_keys'))
+                        # User a déjà des clés compatibles → Vérifier si CET appareil est autorisé
+                        from lib.auth.device_manager import is_device_authorized
+
+                        # Générer l'empreinte de l'appareil actuel
+                        user_agent = request.headers.get('User-Agent', '')
+                        accept_language = request.headers.get('Accept-Language', '')
+                        device_fingerprint_data = f"{user_agent}|{accept_language}"
+                        import hashlib
+                        device_fingerprint = hashlib.sha256(device_fingerprint_data.encode()).hexdigest()
+
+                        if is_device_authorized(username, device_fingerprint):
+                            # Appareil déjà autorisé → Dashboard
+                            print(f"[SECURITY MAX] {username} → Appareil autorisé, accès dashboard")
+                            return redirect(url_for('index'))
+                        else:
+                            # Appareil non autorisé → QR Authorization
+                            print(f"[SECURITY MAX] {username} → Appareil non autorisé, redirection vers QR")
+                            return redirect(url_for('qr_request_authorization'))
                 else:
                     # Mode standard : accès direct au dashboard
                     # Générer des clés basiques si elles n'existent pas (pour compatibility upload)
@@ -427,7 +479,14 @@ def generate_keys():
     from cryptography.hazmat.primitives.asymmetric import ec
     
     try:
+        # ⚠️ IMPORTANT: Web Crypto API ne supporte PAS X25519 !
+        # Le JavaScript génère des clés ECDH P-256 (65 bytes raw format)
+        # On doit donc accepter les clés EC, pas X25519
+        
         public_key_bytes = base64.b64decode(public_key)
+        
+        # Les clés P-256 du navigateur sont en format RAW (65 bytes non compressé)
+        # On doit les convertir en objet EC pour sauvegarder en PEM
         public_key_obj = ec.EllipticCurvePublicKey.from_encoded_point(
             ec.SECP256R1(), public_key_bytes
         )
@@ -449,7 +508,7 @@ def generate_keys():
         import shutil
         shutil.copy(pubkey_path, os.path.join(storage_user_dir, 'public_key.pem'))
         
-        print(f"[KEYS ZK] ✅ Clé publique sauvegardée pour {username}")
+        print(f"[KEYS ZK] ✅ Clé publique P-256 (ECDH) sauvegardée pour {username}")
         
     except Exception as e:
         print(f"[KEYS ZK] ❌ Erreur: {e}")
@@ -520,17 +579,63 @@ def _generate_basic_keys_for_user(username: str):
 @app.route('/download-private-key')
 @login_required
 def download_private_key():
-    """Telecharge la cle privee de l'utilisateur."""
+    """
+    Télécharge la clé privée de l'utilisateur
+
+    En mode maximum avec serveur : retourne la clé chiffrée stockée dans authorized_devices.json
+    En mode standard : retourne le fichier PEM local
+    """
     username = session.get('username')
+    security_mgr = get_security_manager()
+    security_level = security_mgr.get_user_security_level(username)
+
+    # Mode maximum : retourner la clé chiffrée depuis authorized_devices.json
+    if security_level == SECURITY_LEVEL_MAXIMUM:
+        import sys
+        sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+        from lib.auth.device_manager import get_encrypted_private_key
+
+        key_data = get_encrypted_private_key(username)
+
+        if not key_data or not key_data.get('encrypted_private_key'):
+            return "Clé privée chiffrée introuvable. Veuillez configurer vos clés.", 404
+
+        # Créer un fichier JSON temporaire avec les données de clé chiffrée
+        import tempfile
+        import json
+
+        temp_dir = os.path.join(app.root_path, 'temp_downloads')
+        os.makedirs(temp_dir, exist_ok=True)
+
+        temp_path = os.path.join(temp_dir, f'{username}_encrypted_key.json')
+
+        with open(temp_path, 'w') as f:
+            json.dump({
+                'username': username,
+                'encrypted_private_key': key_data['encrypted_private_key'],
+                'salt': key_data['salt'],
+                'iv': key_data['iv'],
+                'created_at': key_data.get('created_at', ''),
+                'note': 'Cette clé privée est chiffrée avec votre mot de passe. Gardez ce fichier en lieu sûr.'
+            }, f, indent=2)
+
+        return send_file(
+            temp_path,
+            as_attachment=True,
+            download_name=f'{username}_encrypted_private_key.json',
+            mimetype='application/json'
+        )
+
+    # Mode standard : retourner le fichier PEM local
     privkey_path = os.path.join(USER_KEYS_DIR, username, 'private_key.pem')
     backup_path = privkey_path + '.server_backup'
 
-    # En mode expert, la clé peut être dans le backup
+    # En mode standard, la clé peut être dans le backup
     if not os.path.exists(privkey_path) and os.path.exists(backup_path):
         privkey_path = backup_path
 
     if not os.path.exists(privkey_path):
-        return "Cle privee introuvable. Veuillez contacter l'administrateur.", 404
+        return "Clé privée introuvable. Veuillez contacter l'administrateur.", 404
 
     return send_file(
         privkey_path,
@@ -618,7 +723,223 @@ def devices_management():
 
 
 # =========================================
-# 🔐 API CODE-BASED AUTHORIZATION (Simple)
+# 🔐 API QR DEVICE AUTHORIZATION
+# =========================================
+
+@app.route('/api/request-device-authorization', methods=['POST'])
+@login_required
+def api_request_device_authorization():
+    """
+    Nouvel appareil demande une autorisation via QR code
+    Crée une session temporaire (60s)
+    """
+    username = session.get('username')
+    data = request.get_json()
+    
+    device_fingerprint = data.get('device_fingerprint')
+    device_public_key_ed25519 = data.get('device_public_key_ed25519')
+    device_info = data.get('device_info', {})
+    
+    if not all([device_fingerprint, device_public_key_ed25519]):
+        return jsonify({'success': False, 'error': 'Données manquantes'}), 400
+    
+    # Créer une session d'autorisation
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+    from lib.auth.qr_authorization import AuthorizationSession
+    
+    session_result = AuthorizationSession.create_session(
+        username=username,
+        new_device_fingerprint=device_fingerprint,
+        new_device_pubkey_ed25519=device_public_key_ed25519,
+        device_info=device_info,
+        max_age_seconds=60
+    )
+    
+    print(f"[QR AUTH] Session créée pour {username}: {session_result['session_id']}")
+    
+    return jsonify(session_result)
+
+@app.route('/api/generate-qr-authorization', methods=['POST'])
+@login_required
+def api_generate_qr_authorization():
+    """
+    Appareil de confiance génère un QR code pour autoriser un autre appareil
+    """
+    username = session.get('username')
+    data = request.get_json()
+    
+    session_id = data.get('session_id')
+    
+    if not session_id:
+        return jsonify({'success': False, 'error': 'session_id manquant'}), 400
+    
+    # Récupérer la session
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+    from lib.auth.qr_authorization import AuthorizationSession
+    
+    session_data = AuthorizationSession.get_session(session_id)
+    
+    if not session_data:
+        return jsonify({'success': False, 'error': 'Session introuvable'}), 404
+    
+    if session_data['status'] == 'expired':
+        return jsonify({'success': False, 'error': 'Session expirée'}), 410
+    
+    # Générer les données du QR code
+    qr_data = {
+        'session_id': session_id,
+        'new_device_pubkey': session_data['new_device_pubkey_ed25519'],
+        'timestamp': session_data['timestamp']
+    }
+    
+    # Générer le QR code (image base64)
+    import json
+    import qrcode
+    from io import BytesIO
+    import base64
+    
+    qr = qrcode.QRCode(version=1, box_size=10, border=4)
+    qr.add_data(json.dumps(qr_data))
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffered = BytesIO()
+    img.save(buffered, format="PNG")
+    img_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
+    
+    return jsonify({
+        'success': True,
+        'qr_data': qr_data,
+        'qr_code_dataurl': f'data:image/png;base64,{img_base64}'
+    })
+
+@app.route('/api/authorize-device', methods=['POST'])
+@login_required
+def api_authorize_device():
+    """
+    Appareil de confiance signe et autorise un nouvel appareil
+    """
+    username = session.get('username')
+    data = request.get_json()
+    
+    session_id = data.get('session_id')
+    signature = data.get('signature')
+    signer_device_id = data.get('signer_device_id')
+    
+    if not all([session_id, signature, signer_device_id]):
+        return jsonify({'success': False, 'error': 'Données manquantes'}), 400
+    
+    # Vérifier que signer_device_id appartient à l'utilisateur
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+    from lib.auth.device_manager import list_user_devices, register_device, get_encrypted_private_key
+    
+    user_devices = list_user_devices(username)
+    signer_device = None
+    
+    for device in user_devices:
+        if device['device_id'] == signer_device_id and not device.get('revoked', False):
+            signer_device = device
+            break
+    
+    if not signer_device:
+        return jsonify({'success': False, 'error': 'Appareil signer non autorisé'}), 403
+    
+    signer_pubkey = signer_device.get('device_public_key_ed25519')
+    if not signer_pubkey:
+        return jsonify({'success': False, 'error': 'Clé publique appareil manquante'}), 400
+    
+    # Autoriser la session
+    from lib.auth.qr_authorization import AuthorizationSession
+    
+    success, message, device_info = AuthorizationSession.authorize_session(
+        session_id=session_id,
+        signature_base64=signature,
+        signer_device_id=signer_device_id,
+        signer_pubkey_ed25519=signer_pubkey
+    )
+    
+    if not success:
+        return jsonify({'success': False, 'error': message}), 400
+    
+    # Enregistrer le nouvel appareil
+    user_key_data = get_encrypted_private_key(username)
+    
+    if not user_key_data:
+        return jsonify({'success': False, 'error': 'Clé utilisateur introuvable'}), 500
+    
+    register_result = register_device(
+        username=username,
+        device_fingerprint=device_info['fingerprint'],
+        device_info=device_info['device_info'],
+        encrypted_private_key=user_key_data['encrypted_private_key'],
+        salt=user_key_data['salt'],
+        iv=user_key_data['iv'],
+        device_public_key_ed25519=device_info['device_public_key_ed25519'],
+        authorized_by_device_id=signer_device_id
+    )
+    
+    # Logger l'action
+    logger = get_activity_logger()
+    logger.log_activity(
+        username, 'DEVICE_AUTHORIZED', request.remote_addr,
+        'SUCCESS', f'Nouvel appareil autorisé via QR: {register_result["device_id"]}',
+        user_agent=request.headers.get('User-Agent', '')
+    )
+    
+    print(f"[QR AUTH] ✅ Nouvel appareil autorisé pour {username}: {register_result['device_id']}")
+    
+    return jsonify({
+        'success': True,
+        'message': 'Appareil autorisé',
+        'new_device_id': register_result['device_id']
+    })
+
+@app.route('/api/check-authorization-status', methods=['GET'])
+def api_check_authorization_status():
+    """
+    Vérifie le statut d'une session d'autorisation (polling)
+    """
+    session_id = request.args.get('session_id')
+    
+    if not session_id:
+        return jsonify({'error': 'session_id manquant'}), 400
+    
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+    from lib.auth.qr_authorization import AuthorizationSession
+    
+    status = AuthorizationSession.check_authorization_status(session_id)
+    
+    return jsonify(status)
+
+@app.route('/qr-request-authorization')
+@login_required
+def qr_request_authorization():
+    """
+    Page pour nouvel appareil : affiche code 6 chiffres
+    """
+    return render_template('qr_request_authorization_v2.html')
+
+@app.route('/qr-scan-authorization')
+@login_required
+def qr_scan_authorization():
+    """
+    Page pour appareil maître : scanner QR d'un nouvel appareil
+    """
+    return render_template('qr_scan_authorization.html')
+
+@app.route('/authorize-device')
+@login_required
+def authorize_device_page():
+    """
+    Page pour autoriser un appareil (code OU QR)
+    """
+    return render_template('authorize_device.html')
+
+
 # =========================================
 
 @app.route('/api/create-auth-session', methods=['POST'])
@@ -802,17 +1123,40 @@ def upload_files():
     # Récupérer le niveau de sécurité pour le template
     security_mgr = get_security_manager()
     security_level = security_mgr.get_user_security_level(username)
+    devices_count = len(security_mgr.get_user_devices(username))
+
+    # Calcul du stockage pour le template
+    storage_used_mb = 0
+    storage_limit_gb = 10
+    storage_dir_user = os.path.join(STORAGE_DIR, username)
+    if os.path.exists(storage_dir_user):
+        for root, dirs, files in os.walk(storage_dir_user):
+            for f in files:
+                fpath = os.path.join(root, f)
+                if os.path.isfile(fpath):
+                    storage_used_mb += os.path.getsize(fpath) / (1024 * 1024)
+    storage_percent = (storage_used_mb / (storage_limit_gb * 1024)) * 100
+
+    # Activités récentes pour le template
+    logger = get_activity_logger()
+    recent_activities = logger.get_user_logs(username, limit=3)
 
     files = request.files.getlist('files_to_upload')
     if not files or files[0].filename == '':
         return render_template('index.html', username=username, is_admin=is_admin,
-            security_level=security_level, message="Erreur : Aucun fichier/dossier sélectionné.")
+            security_level=security_level, devices_count=devices_count,
+            storage_used_mb=round(storage_used_mb, 2),
+            storage_percent=round(storage_percent, 1),
+            storage_limit_gb=storage_limit_gb,
+            recent_activities=recent_activities,
+            message="Erreur : Aucun fichier/dossier sélectionné.")
 
     count = 0
 
     # Get current path from form data (for uploads from restore page)
     current_path = request.form.get('current_path', '').strip()
     print(f"[UPLOAD X25519] Current path: '{current_path}'")
+
 
     # Vérifier la clé publique de l'utilisateur
     user_pubkey_path = os.path.join(USER_KEYS_DIR, username, 'public_key.pem')
@@ -829,17 +1173,52 @@ def upload_files():
                 # Vérifier à nouveau après génération
                 if not os.path.exists(user_pubkey_path):
                     return render_template('index.html', username=username, is_admin=is_admin,
-                        security_level=security_level,
+                        security_level=security_level, devices_count=devices_count,
+                        storage_used_mb=round(storage_used_mb, 2),
+                        storage_percent=round(storage_percent, 1),
+                        storage_limit_gb=storage_limit_gb,
+                        recent_activities=recent_activities,
                         message=f"Erreur : Impossible de générer les clés de chiffrement")
             else:
                 return render_template('index.html', username=username, is_admin=is_admin,
-                    security_level=security_level,
+                    security_level=security_level, devices_count=devices_count,
+                    storage_used_mb=round(storage_used_mb, 2),
+                    storage_percent=round(storage_percent, 1),
+                    storage_limit_gb=storage_limit_gb,
+                    recent_activities=recent_activities,
                     message=f"Erreur : Impossible de générer les clés de chiffrement")
         else:
             # Mode maximum : clés zero-knowledge requises
             return render_template('index.html', username=username, is_admin=is_admin,
-                security_level=security_level,
+                security_level=security_level, devices_count=devices_count,
+                storage_used_mb=round(storage_used_mb, 2),
+                storage_percent=round(storage_percent, 1),
+                storage_limit_gb=storage_limit_gb,
+                recent_activities=recent_activities,
                 message=f"Erreur : Clés zero-knowledge requises. Configurez vos clés depuis les paramètres.")
+    
+    # ✅ VALIDATION : Vérifier que la clé est du bon type
+    # NOTE: En mode maximum, on ACCEPTE les clés EC (P-256) car Web Crypto API
+    # ne supporte pas X25519. Le JavaScript génère des clés ECDH P-256.
+    if security_level == SECURITY_LEVEL_MAXIMUM:
+        import sys
+        sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+        from lib.auth.device_manager import get_user_key_type
+        
+        key_type = get_user_key_type(username)
+        print(f"[UPLOAD] Type de clé détecté : {key_type}")
+        
+        # En mode maximum, on accepte EC (P-256) car c'est ce que génère Web Crypto
+        if key_type not in ['EC', 'X25519']:
+            print(f"[UPLOAD] ❌ Clé invalide : {key_type}")
+            return render_template('index.html', username=username, is_admin=is_admin,
+                security_level=security_level, devices_count=devices_count,
+                storage_used_mb=round(storage_used_mb, 2),
+                storage_percent=round(storage_percent, 1),
+                storage_limit_gb=storage_limit_gb,
+                recent_activities=recent_activities,
+                message=f"⚠️ Type de clé invalide. Veuillez vous reconnecter.")
+
 
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -917,14 +1296,24 @@ def upload_files():
 
         msg = f"Succès : {count}/{len(files)} fichier(s) envoyé(s) de manière sécurisée."
         return render_template('index.html', username=username, is_admin=is_admin,
-            security_level=security_level, message=msg)
+            security_level=security_level, devices_count=devices_count,
+            storage_used_mb=round(storage_used_mb, 2),
+            storage_percent=round(storage_percent, 1),
+            storage_limit_gb=storage_limit_gb,
+            recent_activities=recent_activities,
+            message=msg)
     except Exception as e:
         # Si c'est une requête AJAX, retourner JSON
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.form.get('current_path') is not None:
             return jsonify({'success': False, 'message': str(e)}), 500
 
         return render_template('index.html', username=username, is_admin=is_admin,
-            security_level=security_level, message=f"Erreur Critique : {e}")
+            security_level=security_level, devices_count=devices_count,
+            storage_used_mb=round(storage_used_mb, 2),
+            storage_percent=round(storage_percent, 1),
+            storage_limit_gb=storage_limit_gb,
+            recent_activities=recent_activities,
+            message=f"Erreur Critique : {e}")
 
 # =========================================
 # 📥 RESTAURATION
@@ -1078,6 +1467,103 @@ def api_all_files():
         return jsonify({'error': str(e)}), 500
 
 # =========================================
+# 🔍 API: LISTE DU RÉPERTOIRE COURANT (pour le rafraîchissement dynamique)
+# =========================================
+@app.route('/api/directory_listing')
+@app.route('/api/directory_listing/<path:current_path>')
+@login_required
+def api_directory_listing(current_path=''):
+    """Retourne le listing du répertoire courant pour le rafraîchissement dynamique"""
+    username = session.get('username')
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((STORAGE_SERVER_IP, STORAGE_SERVER_PORT))
+            start_command(s, 'L', username)
+            list_size = struct.unpack('!I', s.recv(4))[0]
+            enc_list = s.recv(list_size).decode('utf-8').split('\n') if list_size > 0 else []
+
+        # Exclure les éléments dans .versions
+        base_enc_list = [f for f in enc_list if f.endswith('.enc') and '.versions' not in f]
+        # Normaliser le séparateur
+        all_files = [f.replace('.enc', '').replace('\\', '/') for f in base_enc_list]
+
+        # Filtrer les fichiers selon le chemin courant
+        if current_path:
+            filtered_files = [f for f in all_files if f.startswith(current_path + '/')]
+            relative_files = [f[len(current_path)+1:] for f in filtered_files]
+        else:
+            relative_files = all_files
+
+        # Séparer les dossiers et fichiers du niveau courant
+        folders = set()
+        files = []
+        file_sizes = {}
+
+        for item in relative_files:
+            if '/' in item:
+                folder_name = item.split('/')[0]
+                folders.add(folder_name)
+            else:
+                files.append(item)
+
+                # Calculer la taille du fichier
+                try:
+                    if current_path:
+                        full_path = os.path.join(current_path, item)
+                    else:
+                        full_path = item
+
+                    enc_file_path = os.path.join(STORAGE_DIR, username, full_path + '.enc')
+
+                    if os.path.exists(enc_file_path):
+                        size_bytes = os.path.getsize(enc_file_path)
+                        file_sizes[item] = size_bytes
+                    else:
+                        file_sizes[item] = 0
+                except Exception as e:
+                    print(f"Erreur calcul taille pour {item}: {e}")
+                    file_sizes[item] = 0
+
+        folder_list = sorted(list(folders))
+        file_list = sorted(files)
+
+        # Formater les tailles de fichiers
+        def format_size(size_bytes):
+            if size_bytes < 1024:
+                return f"{size_bytes} B"
+            elif size_bytes < 1024 * 1024:
+                return f"{size_bytes / 1024:.1f} KB"
+            elif size_bytes < 1024 * 1024 * 1024:
+                return f"{size_bytes / (1024 * 1024):.1f} MB"
+            else:
+                return f"{size_bytes / (1024 * 1024 * 1024):.1f} GB"
+
+        # Créer une liste de fichiers avec leurs informations
+        files_with_sizes = []
+        for file in file_list:
+            size_bytes = file_sizes.get(file, 0)
+            files_with_sizes.append({
+                'name': file,
+                'size': format_size(size_bytes),
+                'size_bytes': size_bytes
+            })
+
+        # Récupérer les derniers logs d'upload
+        logger = get_activity_logger()
+        all_logs = logger.get_user_logs(username, limit=50)
+        upload_logs = [log for log in all_logs if log.get('action') == 'FILE_UPLOAD' and log.get('status') == 'SUCCESS']
+        recent_uploads = upload_logs[:10]
+
+        return jsonify({
+            'success': True,
+            'folders': folder_list,
+            'files': files_with_sizes,
+            'recent_uploads': recent_uploads
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# =========================================
 # 🗂️ VERSIONS: LISTE, TÉLÉCHARGEMENT, RESTAURATION
 # =========================================
 @app.route('/versions')
@@ -1175,10 +1661,19 @@ def download_version(filepath, version):
                              username=username,
                              security_level=get_security_manager().get_user_security_level(username))
 
-    # Vérifier la clé privée de l'utilisateur
+    # Vérifier le mode de sécurité
+    security_mgr = get_security_manager()
+    security_level = security_mgr.get_user_security_level(username)
+
+    # Mode maximum : déchiffrement côté client
+    if security_level == SECURITY_LEVEL_MAXIMUM:
+        # Rediriger vers la page de déchiffrement client avec les paramètres de version
+        return redirect(url_for('client_decrypt_version', filepath=filepath, version=version))
+
+    # Mode standard : déchiffrement côté serveur
     user_privkey_path = os.path.join(USER_KEYS_DIR, username, 'private_key.pem')
     if not os.path.exists(user_privkey_path):
-        return redirect(url_for('need_private_key', filename=filepath, action='download'))
+        return redirect(url_for('setup_keys'))
 
     # Construire les chemins des fichiers de version
     if not filepath.endswith('.enc'):
@@ -1474,7 +1969,16 @@ def download_file(filepath):
                 </script>
             """
 
-    # Vérifier la clé privée de l'utilisateur
+    # Vérifier le mode de sécurité
+    security_mgr = get_security_manager()
+    security_level = security_mgr.get_user_security_level(username)
+
+    # Mode maximum : déchiffrement côté client
+    if security_level == SECURITY_LEVEL_MAXIMUM:
+        # Rediriger vers la page de déchiffrement client
+        return redirect(url_for('client_decrypt_file', filepath=filepath))
+
+    # Mode standard : déchiffrement côté serveur (besoin de la clé PEM locale)
     user_privkey_path = os.path.join(USER_KEYS_DIR, username, 'private_key.pem')
     if not os.path.exists(user_privkey_path):
         # L'utilisateur n'a pas de clé privée (mode ancien ou premier setup)
@@ -1833,8 +2337,15 @@ def admin_security():
     username = session.get('username')
     security_mgr = get_security_manager()
 
-    # Récupérer le niveau de sécurité actuel de l'utilisateur
-    current_security_level = security_mgr.get_user_security_level(username)
+    # ✅ Récupérer le mode de sécurité GLOBAL (pas celui de l'utilisateur)
+    import sys
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+    from lib.monitoring.admin_security import get_current_mode
+
+    global_mode = get_current_mode()
+    current_security_level = 'maximum' if global_mode == 'maximum' else 'standard'
 
     # Récupérer les appareils enregistrés
     devices = security_mgr.get_user_devices(username)
@@ -1870,8 +2381,13 @@ def admin_security():
 @app.route('/admin/security/set-level', methods=['POST'])
 @login_required
 def set_security_level():
-    """Définit le niveau de sécurité pour l'utilisateur actuel"""
+    """Définit le niveau de sécurité GLOBAL pour TOUS les utilisateurs (admin uniquement)"""
     username = session.get('username')
+
+    # Vérifier que c'est l'admin
+    if username != app.config['ADMIN_USERNAME']:
+        return redirect(url_for('admin_security', message='Accès réservé à l\'administrateur'))
+
     security_level = request.form.get('security_level')
 
     if security_level not in [SECURITY_LEVEL_STANDARD, SECURITY_LEVEL_MAXIMUM]:
@@ -1880,11 +2396,36 @@ def set_security_level():
     security_mgr = get_security_manager()
     old_level = security_mgr.get_user_security_level(username)
 
-    # Définir le nouveau niveau
-    success = security_mgr.set_user_security_level(username, security_level)
+    # ✅ IMPORTANT: Mettre à jour le mode global dans .env
+    import sys
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if parent_dir not in sys.path:
+        sys.path.insert(0, parent_dir)
+    from lib.monitoring.admin_security import get_current_mode
+    from dotenv import set_key
 
-    if not success:
-        return redirect(url_for('admin_security', message='Erreur lors de la mise à jour'))
+    new_mode = 'maximum' if security_level == SECURITY_LEVEL_MAXIMUM else 'normal'
+    set_key('.env', 'SECURITY_MODE', new_mode)
+    print(f"[SECURITY] Mode global changé: {get_current_mode()} → {new_mode}")
+
+    # ✅ Mettre à jour TOUS les utilisateurs existants
+    updated_users = []
+
+    # 1. Utilisateurs qui ont déjà un niveau de sécurité configuré
+    if hasattr(security_mgr, 'users_security'):
+        for user in list(security_mgr.users_security.keys()):
+            security_mgr.set_user_security_level(user, security_level)
+            updated_users.append(user)
+
+    # 2. Utilisateurs qui ont des clés (donc qui se sont déjà connectés)
+    if os.path.exists(USER_KEYS_DIR):
+        for user_dir in os.listdir(USER_KEYS_DIR):
+            user_path = os.path.join(USER_KEYS_DIR, user_dir)
+            if os.path.isdir(user_path) and user_dir not in updated_users:
+                security_mgr.set_user_security_level(user_dir, security_level)
+                updated_users.append(user_dir)
+
+    print(f"[SECURITY] {len(updated_users)} utilisateurs mis à jour vers {security_level}")
 
     # Si passage en mode sécurité maximale
     if old_level == SECURITY_LEVEL_STANDARD and security_level == SECURITY_LEVEL_MAXIMUM:
@@ -2098,6 +2639,190 @@ def clear_all_logs():
         return redirect(url_for('admin_logs') + '?message=Erreur lors de l\'effacement des logs.')
 
 # =========================================
+# 🔐 CLIENT-SIDE DECRYPTION (Mode Maximum)
+# =========================================
+@app.route('/client-decrypt/<path:filepath>')
+@login_required
+def client_decrypt_file(filepath):
+    """
+    Page de déchiffrement côté client pour mode maximum
+    L'utilisateur entre son mot de passe, le JS déchiffre et propose le téléchargement
+    """
+    username = session.get('username')
+
+    # Passer le filepath au template
+    return render_template('client_decrypt.html',
+                         username=username,
+                         filepath=filepath,
+                         is_admin=username == app.config['ADMIN_USERNAME'])
+
+@app.route('/api/get-encrypted-file/<path:filepath>')
+@login_required
+def get_encrypted_file(filepath):
+    """
+    Retourne le fichier chiffré (.enc) et la clé AES chiffrée (.key) en base64
+    Pour le déchiffrement côté client
+    """
+    username = session.get('username')
+
+    # Vérifier l'accès
+    can_access, access_message, device_fp = check_security_access(username)
+    if not can_access:
+        return jsonify({'success': False, 'error': access_message}), 403
+
+    # Construire les chemins
+    if not filepath.endswith('.enc'):
+        enc_filepath = filepath + ".enc"
+        key_filepath = filepath + ".key"
+    else:
+        enc_filepath = filepath
+        key_filepath = filepath.replace('.enc', '.key')
+
+    try:
+        import base64
+
+        # Télécharger fichier chiffré (.enc)
+        enc_data = None
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((STORAGE_SERVER_IP, STORAGE_SERVER_PORT))
+            start_command(s, 'G', username)
+            send_prefixed_string(s, enc_filepath.replace('/', os.sep))
+            filesize = struct.unpack('!Q', s.recv(8))[0]
+
+            if filesize == 0:
+                return jsonify({'success': False, 'error': 'Fichier .enc non trouvé'}), 404
+
+            enc_data = b''
+            rec, total = 0, filesize
+            while rec < total:
+                chunk = s.recv(4096)
+                enc_data += chunk
+                rec += len(chunk)
+
+        # Télécharger clé AES chiffrée (.key)
+        key_data = None
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((STORAGE_SERVER_IP, STORAGE_SERVER_PORT))
+            start_command(s, 'G', username)
+            send_prefixed_string(s, key_filepath.replace('/', os.sep))
+            keysize = struct.unpack('!Q', s.recv(8))[0]
+
+            if keysize == 0:
+                return jsonify({'success': False, 'error': 'Clé AES (.key) non trouvée'}), 404
+
+            key_data = b''
+            rec, total = 0, keysize
+            while rec < total:
+                chunk = s.recv(4096)
+                key_data += chunk
+                rec += len(chunk)
+
+        # Retourner en base64
+        return jsonify({
+            'success': True,
+            'filename': os.path.basename(filepath),
+            'encrypted_file': base64.b64encode(enc_data).decode('utf-8'),
+            'encrypted_key': base64.b64encode(key_data).decode('utf-8')
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# =========================================
+# 🔐 CLIENT DECRYPT VERSION
+# =========================================
+@app.route('/client-decrypt-version/<path:filepath>/<version>')
+@login_required
+def client_decrypt_version(filepath, version):
+    """
+    Page de déchiffrement côté client pour une version de fichier en mode maximum
+    L'utilisateur entre son mot de passe, le JS déchiffre et propose le téléchargement
+    """
+    username = session.get('username')
+
+    # Passer le filepath, la version et un flag au template
+    return render_template('client_decrypt.html',
+                         username=username,
+                         filepath=filepath,
+                         version=version,
+                         is_version=True,
+                         is_admin=username == app.config['ADMIN_USERNAME'])
+
+@app.route('/api/get-encrypted-version/<path:filepath>/<version>')
+@login_required
+def get_encrypted_version(filepath, version):
+    """
+    Retourne une version de fichier chiffré (.enc) et la clé AES chiffrée (.key) en base64
+    Pour le déchiffrement côté client des versions
+    """
+    username = session.get('username')
+
+    # Vérifier l'accès
+    can_access, access_message, device_fp = check_security_access(username)
+    if not can_access:
+        return jsonify({'success': False, 'error': access_message}), 403
+
+    # Construire les chemins pour les versions
+    if not filepath.endswith('.enc'):
+        base_filepath = filepath
+    else:
+        base_filepath = filepath.replace('.enc', '')
+
+    # Chemins dans .versions/
+    enc_version_path = f".versions/{base_filepath}.enc/{version}.enc"
+    key_version_path = f".versions/{base_filepath}.key/{version}.key"
+
+    try:
+        import base64
+
+        # Télécharger fichier chiffré (.enc) de la version
+        enc_data = None
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((STORAGE_SERVER_IP, STORAGE_SERVER_PORT))
+            start_command(s, 'G', username)
+            send_prefixed_string(s, enc_version_path.replace('/', os.sep))
+            filesize = struct.unpack('!Q', s.recv(8))[0]
+
+            if filesize == 0:
+                return jsonify({'success': False, 'error': 'Version .enc non trouvée'}), 404
+
+            enc_data = b''
+            rec, total = 0, filesize
+            while rec < total:
+                chunk = s.recv(4096)
+                enc_data += chunk
+                rec += len(chunk)
+
+        # Télécharger clé AES chiffrée (.key) de la version
+        key_data = None
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((STORAGE_SERVER_IP, STORAGE_SERVER_PORT))
+            start_command(s, 'G', username)
+            send_prefixed_string(s, key_version_path.replace('/', os.sep))
+            keysize = struct.unpack('!Q', s.recv(8))[0]
+
+            if keysize == 0:
+                return jsonify({'success': False, 'error': 'Clé AES (.key) de la version non trouvée'}), 404
+
+            key_data = b''
+            rec, total = 0, keysize
+            while rec < total:
+                chunk = s.recv(4096)
+                key_data += chunk
+                rec += len(chunk)
+
+        # Retourner en base64
+        return jsonify({
+            'success': True,
+            'filename': f"{os.path.basename(base_filepath)}_v{version}",
+            'encrypted_file': base64.b64encode(enc_data).decode('utf-8'),
+            'encrypted_key': base64.b64encode(key_data).decode('utf-8')
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# =========================================
 # 📦 DOWNLOAD FOLDER (ZIP)
 # =========================================
 @app.route('/download_folder/<path:folderpath>')
@@ -2117,7 +2842,7 @@ def download_folder(folderpath):
     # Vérifier la clé privée
     user_privkey_path = os.path.join(USER_KEYS_DIR, username, 'private_key.pem')
     if not os.path.exists(user_privkey_path):
-        return redirect(url_for('need_private_key', filename=folderpath, action='download'))
+        return redirect(url_for('setup_keys'))
 
     try:
         # Récupérer la liste des fichiers dans le dossier

@@ -8,7 +8,7 @@ import os
 import shutil
 from typing import Dict, List
 from dotenv import load_dotenv, set_key
-from activity_logger import get_activity_logger
+from lib.monitoring.activity_logger import get_activity_logger
 
 ENV_FILE = '.env'
 SECURITY_MODE_KEY = 'SECURITY_MODE'
@@ -126,17 +126,47 @@ def change_security_mode(new_mode: str, admin_username: str, force_purge: bool =
     
     # Mise à jour .env
     set_key(ENV_FILE, SECURITY_MODE_KEY, new_mode)
-    
+
+    # ✅ IMPORTANT: Mettre à jour le niveau de sécurité pour TOUS les utilisateurs existants
+    import sys
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from lib.auth.security_manager import get_security_manager, SECURITY_LEVEL_STANDARD, SECURITY_LEVEL_MAXIMUM
+
+    security_mgr = get_security_manager()
+
+    # Mapper les modes aux niveaux de sécurité
+    security_level = SECURITY_LEVEL_MAXIMUM if new_mode == 'maximum' else SECURITY_LEVEL_STANDARD
+
+    # Récupérer tous les utilisateurs existants
+    updated_users = []
+
+    # 1. Utilisateurs qui ont déjà un niveau de sécurité configuré
+    if hasattr(security_mgr, 'users_security'):
+        for username in list(security_mgr.users_security.keys()):
+            if username != admin_username:  # Ne pas toucher à l'admin
+                security_mgr.set_user_security_level(username, security_level)
+                updated_users.append(username)
+
+    # 2. Utilisateurs qui ont des clés (donc qui se sont déjà connectés)
+    user_keys_dir = '/app/user_keys'
+    if os.path.exists(user_keys_dir):
+        for username in os.listdir(user_keys_dir):
+            user_path = os.path.join(user_keys_dir, username)
+            if os.path.isdir(user_path) and username != admin_username and username not in updated_users:
+                security_mgr.set_user_security_level(username, security_level)
+                updated_users.append(username)
+
     logger.log_activity(
         admin_username,
         'SECURITY_MODE_CHANGE',
         '127.0.0.1',
         'SUCCESS',
-        f'Mode de sécurité changé: {current_mode} → {new_mode}'
+        f'Mode de sécurité changé: {current_mode} → {new_mode}. {len(updated_users)} utilisateurs mis à jour.'
     )
-    
+
     return {
         'success': True,
-        'message': f'Mode changé vers {new_mode}. {len(users_with_files)} utilisateur(s) purgé(s).',
-        'purged_users': users_with_files
+        'message': f'Mode changé vers {new_mode}. {len(users_with_files)} utilisateur(s) purgé(s). {len(updated_users)} utilisateur(s) mis à jour.',
+        'purged_users': users_with_files,
+        'updated_users': updated_users
     }

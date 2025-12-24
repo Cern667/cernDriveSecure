@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Déchiffrement du fichier - CernCloud.Nas</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/global-theme.css') }}">
+
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: var(--spacing-lg);
+        }
+
+        .decrypt-container {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 48px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: var(--shadow-lg);
+            text-align: center;
+        }
+
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .brand-logo i {
+            color: var(--primary-blue);
+        }
+
+        .brand-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-header);
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: var(--spacing-sm);
+            color: var(--text-header);
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            margin-bottom: var(--spacing-xl);
+            font-size: 15px;
+        }
+
+        .filename-display {
+            background: rgba(0, 112, 243, 0.1);
+            border: 1px solid rgba(0, 112, 243, 0.3);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+            word-break: break-all;
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--primary-blue);
+        }
+
+        .password-input {
+            margin-bottom: var(--spacing-lg);
+            text-align: left;
+        }
+
+        .password-input label {
+            display: block;
+            margin-bottom: var(--spacing-sm);
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .password-input input {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            background: var(--bg-input);
+            color: white;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all var(--transition-fast);
+        }
+
+        .password-input input:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.2);
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 15px 40px;
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-sm);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--primary-blue-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 112, 243, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            margin-top: var(--spacing-lg);
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--primary-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .result {
+            margin-top: var(--spacing-lg);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            display: none;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result.success-bg {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #6EE7B7;
+        }
+
+        .result.error-bg {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #FCA5A5;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: var(--spacing-md);
+            display: none;
+        }
+
+        .progress-bar.active {
+            display: block;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary-blue), var(--primary-blue-hover));
+            transition: width 0.3s;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="decrypt-container">
+        <div class="brand-logo">
+            <i data-lucide="shield-check" size="32"></i>
+            <span class="brand-text">CernCloud<span style="color: var(--primary-blue);">.Nas</span></span>
+        </div>
+
+        <h1>🔐 Déchiffrement Sécurisé</h1>
+        <p class="subtitle">Entrez votre mot de passe pour déchiffrer et télécharger le fichier</p>
+
+        <div class="filename-display">
+            <i data-lucide="file" size="16" style="vertical-align: middle; margin-right: 8px;"></i>
+            {{ filepath.split('/')[-1] }}
+        </div>
+
+        <div class="password-input">
+            <label for="password">Mot de passe de chiffrement :</label>
+            <input type="password" id="password" placeholder="Entrez votre mot de passe" autocomplete="current-password" autofocus>
+        </div>
+
+        <button id="decryptBtn" class="btn-primary" onclick="decryptAndDownload()">
+            <i data-lucide="download" size="20"></i>
+            Déchiffrer et Télécharger
+        </button>
+
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p id="loadingText" style="color: var(--text-secondary);">Déchiffrement en cours...</p>
+        </div>
+
+        <div class="result" id="result"></div>
+
+        <div style="margin-top: 20px;">
+            <a href="/restore" style="color: var(--text-muted); text-decoration: none; font-size: 14px;">
+                <i data-lucide="arrow-left" size="14" style="vertical-align: middle; margin-right: 4px;"></i>
+                Retour aux fichiers
+            </a>
+        </div>
+    </div>
+
+    <!-- Charger les modules crypto -->
+    <script src="{{ url_for('static', filename='js/crypto_client.js') }}"></script>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        const filepath = "{{ filepath }}";
+        const isVersion = {{ 'true' if is_version else 'false' }};
+        const version = "{{ version if is_version else '' }}";
+
+        // Session de déchiffrement : clé privée en mémoire
+        let cachedPrivateKey = null;
+
+        async function decryptAndDownload() {
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('decryptBtn');
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const loadingText = document.getElementById('loadingText');
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+
+            if (!password) {
+                showResult('error', '❌ Veuillez entrer votre mot de passe');
+                return;
+            }
+
+            btn.disabled = true;
+            loading.classList.add('active');
+            result.classList.remove('show');
+            progressBar.classList.add('active');
+
+            try {
+                let privateKey = cachedPrivateKey;
+
+                // Si pas de clé en cache, déchiffrer avec le mot de passe
+                if (!privateKey) {
+                    if (!password) {
+                        showResult('error', '❌ Veuillez entrer votre mot de passe');
+                        return;
+                    }
+
+                    // Étape 1 : Récupérer la clé privée chiffrée
+                    updateProgress(10, 'Récupération de votre clé privée...');
+                    const keyResponse = await fetch('/api/get-encrypted-key');
+                    const keyData = await keyResponse.json();
+
+                    if (!keyData.success || !keyData.encrypted_private_key) {
+                        throw new Error('Clé privée chiffrée introuvable');
+                    }
+
+                    // Étape 2 : Déchiffrer la clé privée avec le mot de passe
+                    updateProgress(30, 'Déchiffrement de votre clé privée...');
+
+                    // Convertir les données base64 en ArrayBuffer
+                    const encryptedKeyBuffer = CryptoClient.base64ToArrayBuffer(keyData.encrypted_private_key);
+                    const saltBuffer = CryptoClient.base64ToArrayBuffer(keyData.salt);
+                    const ivBuffer = CryptoClient.base64ToArrayBuffer(keyData.iv);
+
+                    privateKey = await CryptoClient.decryptPrivateKeyWithPassword(
+                        encryptedKeyBuffer,
+                        saltBuffer,
+                        ivBuffer,
+                        password
+                    );
+
+                    if (!privateKey) {
+                        throw new Error('Mot de passe incorrect');
+                    }
+
+                    // Mettre en cache pour les prochains téléchargements
+                    cachedPrivateKey = privateKey;
+                    console.log('✅ Clé privée mise en cache pour cette session');
+                } else {
+                    updateProgress(30, 'Utilisation de la clé en cache...');
+                    console.log('✅ Utilisation de la clé privée en cache');
+                }
+
+                // Étape 3 : Récupérer le fichier chiffré et la clé AES chiffrée
+                updateProgress(50, 'Récupération du fichier chiffré...');
+
+                // Utiliser l'API appropriée selon si c'est une version ou non
+                const apiUrl = isVersion
+                    ? `/api/get-encrypted-version/${filepath}/${version}`
+                    : `/api/get-encrypted-file/${filepath}`;
+
+                const fileResponse = await fetch(apiUrl);
+                const fileData = await fileResponse.json();
+
+                if (!fileData.success) {
+                    throw new Error(fileData.error || 'Erreur lors de la récupération du fichier');
+                }
+
+                // Étape 4 : Déchiffrer la clé AES avec la clé privée
+                updateProgress(70, 'Déchiffrement de la clé AES...');
+                const encryptedKeyBytes = CryptoClient.base64ToArrayBuffer(fileData.encrypted_key);
+                const aesKey = await CryptoClient.decryptAesKeyWithPrivateKey(encryptedKeyBytes, privateKey);
+
+                // Étape 5 : Déchiffrer le fichier avec la clé AES
+                updateProgress(85, 'Déchiffrement du fichier...');
+                const encryptedFileBlob = new Blob([CryptoClient.base64ToArrayBuffer(fileData.encrypted_file)]);
+                const decryptedFileBlob = await CryptoClient.decryptFile(encryptedFileBlob, aesKey);
+
+                // Étape 6 : Télécharger le fichier déchiffré
+                updateProgress(100, 'Téléchargement...');
+                const url = window.URL.createObjectURL(decryptedFileBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileData.filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+
+                loading.classList.remove('active');
+                progressBar.classList.remove('active');
+                showResult('success', `✅ Fichier "${fileData.filename}" déchiffré et téléchargé avec succès !`);
+
+                setTimeout(() => {
+                    window.location.href = '/restore';
+                }, 2000);
+
+            } catch (err) {
+                console.error('Erreur déchiffrement:', err);
+                loading.classList.remove('active');
+                progressBar.classList.remove('active');
+                showResult('error', `❌ Erreur : ${err.message}`);
+                btn.disabled = false;
+            }
+        }
+
+        function updateProgress(percent, text) {
+            document.getElementById('progressFill').style.width = percent + '%';
+            document.getElementById('loadingText').textContent = text;
+        }
+
+        function showResult(type, message) {
+            const result = document.getElementById('result');
+            result.textContent = message;
+            result.className = 'result show ' + (type === 'success' ? 'success-bg' : 'error-bg');
+        }
+
+        // Permettre la validation avec Enter
+        document.getElementById('password').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                decryptAndDownload();
+            }
+        });
+    </script>
+</body>
+
+</html>

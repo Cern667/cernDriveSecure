@@ -98,8 +98,15 @@
     }
 
     @keyframes float {
-        0%, 100% { transform: translateY(0px); }
-        50% { transform: translateY(-10px); }
+
+        0%,
+        100% {
+            transform: translateY(0px);
+        }
+
+        50% {
+            transform: translateY(-10px);
+        }
     }
 
     .upload-zone h3 {
@@ -631,7 +638,8 @@
 {% block header_actions %}
 <div style="display: flex; gap: 10px;">
     {% if current_path %}
-    <a href="{{ url_for('restore_page', current_path=parent_path if parent_path else '') }}" class="btn btn-secondary btn-sm">
+    <a href="{{ url_for('restore_page', current_path=parent_path if parent_path else '') }}"
+        class="btn btn-secondary btn-sm">
         <i data-lucide="arrow-up" size="16"></i>
         Remonter
     </a>
@@ -685,7 +693,8 @@
         Sélectionner des fichiers
     </button>
     <input type="file" id="fileInput" multiple style="display: none;" onchange="handleFileSelect(event)">
-    <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none;" onchange="handleFileSelect(event)">
+    <input type="file" id="folderInput" webkitdirectory directory multiple style="display: none;"
+        onchange="handleFileSelect(event)">
 
     <!-- Upload Progress -->
     <div class="upload-progress" id="uploadProgress">
@@ -762,7 +771,8 @@
     <div class="file-list">
         <!-- Folders -->
         {% for folder in folders %}
-        <div class="file-item folder-item" onclick="location.href='{{ url_for('restore_page', current_path=(current_path + '/' + folder if current_path else folder)) }}'">
+        <div class="file-item folder-item"
+            onclick="location.href='{{ url_for('restore_page', current_path=(current_path + '/' + folder if current_path else folder)) }}'">
             <div class="file-item-info">
                 <div class="file-icon-wrapper folder-icon-wrapper">
                     <i data-lucide="folder" size="26" style="color: white;"></i>
@@ -775,29 +785,22 @@
                 </div>
             </div>
             <div class="file-actions" onclick="event.stopPropagation()">
-                {% set security_mgr = get_security_manager() %}
-                {% set is_expert_mode = security_mgr.get_user_security_level(username) == 'maximum' %}
-                {% set can_manage = not (is_admin and is_expert_mode) %}
-
-                {% if can_manage %}
-                <a href="{{ url_for('download_folder', folderpath=(current_path + '/' + folder if current_path else folder)) }}" class="action-btn btn-download">
+                {# En mode maximum, tout le monde peut gérer ses fichiers (pas de restriction) #}
+                <a href="{{ url_for('download_folder', folderpath=(current_path + '/' + folder if current_path else folder)) }}"
+                    class="action-btn btn-download">
                     <i data-lucide="download" size="18"></i>
                     Télécharger ZIP
                 </a>
-                <form method="post" action="{{ url_for('delete_folder_route') }}" style="margin: 0;" onsubmit="return confirm('Supprimer définitivement ce dossier et tout son contenu ?');">
-                    <input type="hidden" name="folderpath" value="{{ (current_path + '/' + folder if current_path else folder) }}">
+                <form method="post" action="{{ url_for('delete_folder_route') }}" style="margin: 0;"
+                    onsubmit="return confirm('Supprimer définitivement ce dossier et tout son contenu ?');">
+                    <input type="hidden" name="folderpath"
+                        value="{{ (current_path + '/' + folder if current_path else folder) }}">
                     <input type="hidden" name="current_path" value="{{ current_path }}">
                     <button type="submit" class="action-btn btn-delete">
                         <i data-lucide="trash-2" size="18"></i>
                         Supprimer
                     </button>
                 </form>
-                {% else %}
-                <div class="action-btn" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 2px solid var(--danger); cursor: not-allowed;" title="Mode Expert : accès restreint">
-                    <i data-lucide="lock" size="18"></i>
-                    Accès restreint (Mode Expert)
-                </div>
-                {% endif %}
             </div>
         </div>
         {% endfor %}
@@ -827,16 +830,13 @@
                 </div>
             </div>
             <div class="file-actions">
-                {% set security_mgr = get_security_manager() %}
-                {% set is_expert_mode = security_mgr.get_user_security_level(username) == 'maximum' %}
-                {% set can_manage = not (is_admin and is_expert_mode) %}
-
-                {% if can_manage %}
+                {# En mode maximum, tout le monde peut gérer ses fichiers (pas de restriction) #}
                 <a href="{{ url_for('download_file', filepath=full_path) }}" class="action-btn btn-download">
                     <i data-lucide="download" size="18"></i>
                     Télécharger
                 </a>
-                <form method="post" action="{{ url_for('delete_file_route') }}" style="margin: 0;" onsubmit="return confirm('Supprimer définitivement ce fichier ?');">
+                <form method="post" action="{{ url_for('delete_file_route') }}" style="margin: 0;"
+                    onsubmit="return confirm('Supprimer définitivement ce fichier ?');">
                     <input type="hidden" name="filepath" value="{{ full_path }}">
                     <input type="hidden" name="current_path" value="{{ current_path }}">
                     <button type="submit" class="action-btn btn-delete">
@@ -844,12 +844,6 @@
                         Supprimer
                     </button>
                 </form>
-                {% else %}
-                <div class="action-btn" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 2px solid var(--danger); cursor: not-allowed;" title="Mode Expert : accès restreint">
-                    <i data-lucide="lock" size="18"></i>
-                    Accès restreint (Mode Expert)
-                </div>
-                {% endif %}
             </div>
         </div>
         {% endfor %}
@@ -859,7 +853,8 @@
         <div class="empty-state">
             <i data-lucide="inbox" size="80" style="color: var(--text-muted);"></i>
             <h3 style="color: var(--text-secondary); margin-bottom: 12px; font-size: 24px;">Aucun fichier</h3>
-            <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 16px;">Ce dossier est vide. Commencez par uploader des fichiers.</p>
+            <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 16px;">Ce dossier est vide. Commencez
+                par uploader des fichiers.</p>
         </div>
         {% endif %}
     </div>
@@ -1027,7 +1022,8 @@
                 progressFill.style.width = '100%';
                 progressFill.style.background = 'linear-gradient(90deg, #10b981, #34d399)';
                 setTimeout(() => {
-                    location.reload();
+                    // Rafraîchir dynamiquement sans rechargement de page
+                    refreshFileList();
                 }, 1500);
             } else {
                 const errorMessage = (responseData && responseData.message) ? responseData.message : 'Erreur inconnue';
@@ -1074,6 +1070,175 @@
         const minutes = Math.floor(seconds / 60);
         const secs = Math.round(seconds % 60);
         return `${minutes}m ${secs}s`;
+    }
+
+    // Fonction pour rafraîchir dynamiquement la liste des fichiers
+    function refreshFileList() {
+        const currentPath = '{{ current_path if current_path else "" }}';
+        const apiUrl = currentPath ? `/api/directory_listing/${currentPath}` : '/api/directory_listing';
+
+        fetch(apiUrl)
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    console.error('Erreur lors du rafraîchissement:', data.error);
+                    return;
+                }
+
+                // Mettre à jour la liste des fichiers
+                updateFileList(data.folders, data.files);
+
+                // Mettre à jour la section "recent uploads"
+                updateRecentUploads(data.recent_uploads);
+
+                // Cacher la barre de progression
+                setTimeout(() => {
+                    uploadProgress.classList.remove('active');
+                    // Réinitialiser les inputs de fichiers
+                    document.getElementById('fileInput').value = '';
+                    document.getElementById('folderInput').value = '';
+                }, 1000);
+            })
+            .catch(error => {
+                console.error('Erreur réseau lors du rafraîchissement:', error);
+                // En cas d'erreur, faire un reload classique
+                location.reload();
+            });
+    }
+
+    // Fonction pour mettre à jour la liste des fichiers et dossiers dans le DOM
+    function updateFileList(folders, files) {
+        const fileList = document.querySelector('.file-list');
+        if (!fileList) return;
+
+        // Vider la liste actuelle
+        fileList.innerHTML = '';
+
+        // Reconstruire la liste avec les nouveaux dossiers et fichiers
+        const currentPath = '{{ current_path if current_path else "" }}';
+        const securityLevel = '{{ get_security_manager().get_user_security_level(username) }}';
+
+        // Ajouter les dossiers
+        folders.forEach(folder => {
+            const folderPath = currentPath ? `${currentPath}/${folder}` : folder;
+            const folderHtml = `
+                <div class="file-item" onclick="window.location.href='/restore/${folderPath}'">
+                    <div class="file-info">
+                        <div class="file-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                            <i data-lucide="folder" size="24" style="color: white;"></i>
+                        </div>
+                        <div class="file-details">
+                            <div class="file-name">${folder}</div>
+                            <div class="file-meta">Dossier</div>
+                        </div>
+                    </div>
+                    <div class="file-actions">
+                        <button class="action-btn" onclick="event.stopPropagation(); window.location.href='/restore/${folderPath}'">
+                            <i data-lucide="folder-open" size="18"></i>
+                            Ouvrir
+                        </button>
+                    </div>
+                </div>
+            `;
+            fileList.insertAdjacentHTML('beforeend', folderHtml);
+        });
+
+        // Ajouter les fichiers
+        files.forEach(file => {
+            const filePath = currentPath ? `${currentPath}/${file.name}` : file.name;
+
+            const fileHtml = `
+                <div class="file-item">
+                    <div class="file-info">
+                        <div class="file-icon" style="background: linear-gradient(135deg, #0070F3, #00A8E8);">
+                            <i data-lucide="file" size="24" style="color: white;"></i>
+                        </div>
+                        <div class="file-details">
+                            <div class="file-name">${file.name}</div>
+                            <div class="file-meta">
+                                <span><i data-lucide="hard-drive" size="14" style="vertical-align: middle; margin-right: 4px;"></i> ${file.size}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="file-actions">
+                        <a href="/download/${filePath}" class="action-btn btn-download">
+                            <i data-lucide="download" size="18"></i>
+                            Télécharger
+                        </a>
+                        <form method="post" action="/delete_file" style="margin: 0; display: inline;" onsubmit="return confirm('Supprimer définitivement ce fichier ?');">
+                            <input type="hidden" name="filepath" value="${filePath}">
+                            <input type="hidden" name="current_path" value="${currentPath}">
+                            <button type="submit" class="action-btn btn-delete">
+                                <i data-lucide="trash-2" size="18"></i>
+                                Supprimer
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            fileList.insertAdjacentHTML('beforeend', fileHtml);
+        });
+
+        // Si aucun fichier ni dossier, afficher le message vide
+        if (folders.length === 0 && files.length === 0) {
+            fileList.innerHTML = `
+                <div class="empty-state">
+                    <i data-lucide="inbox" size="80" style="color: var(--text-muted);"></i>
+                    <h3 style="color: var(--text-secondary); margin-bottom: 12px; font-size: 24px;">Aucun fichier</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 24px; font-size: 16px;">Ce dossier est vide. Commencez par uploader des fichiers.</p>
+                </div>
+            `;
+        }
+
+        // Réinitialiser les icônes Lucide
+        lucide.createIcons();
+    }
+
+    // Fonction pour mettre à jour la section "Recent Uploads"
+    function updateRecentUploads(recentUploads) {
+        const uploadsContent = document.getElementById('uploadsContent');
+        if (!uploadsContent) return;
+
+        if (recentUploads && recentUploads.length > 0) {
+            // Mettre à jour le contenu
+            uploadsContent.innerHTML = '';
+            recentUploads.forEach(log => {
+                const uploadHtml = `
+                    <div class="upload-log-item">
+                        <div class="upload-log-icon">
+                            <i data-lucide="upload" size="18" style="color: white;"></i>
+                        </div>
+                        <div class="upload-log-details">
+                            <div class="upload-log-file">${log.details.replace('Fichier: ', '')}</div>
+                            <div class="upload-log-time">
+                                <i data-lucide="calendar" size="12" style="vertical-align: middle; margin-right: 4px;"></i>
+                                ${log.timestamp.substring(0, 19).replace('T', ' ')}
+                            </div>
+                        </div>
+                        <div class="upload-log-status">
+                            <i data-lucide="check-circle" size="14" style="vertical-align: middle; margin-right: 4px;"></i>
+                            Réussi
+                        </div>
+                    </div>
+                `;
+                uploadsContent.insertAdjacentHTML('beforeend', uploadHtml);
+            });
+
+            // Afficher la section si elle était cachée
+            const recentUploadsSection = document.querySelector('.recent-uploads');
+            if (recentUploadsSection) {
+                recentUploadsSection.style.display = 'block';
+            }
+
+            // Mettre à jour le badge du nombre d'uploads
+            const badgeCount = document.querySelector('.recent-uploads .badge');
+            if (badgeCount) {
+                badgeCount.textContent = recentUploads.length;
+            }
+
+            // Réinitialiser les icônes Lucide
+            lucide.createIcons();
+        }
     }
 
     // Search functionality

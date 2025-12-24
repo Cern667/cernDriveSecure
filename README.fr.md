@@ -50,6 +50,32 @@
 
 ### **Installation**
 
+#### **Option 1 : Configuration Automatisée (Recommandée)**
+
+La façon la plus simple de démarrer est d'utiliser le script de démarrage fourni :
+
+```bash
+# Cloner le dépôt
+git clone <url-du-depot>
+cd nas
+
+# Lancer la configuration automatisée
+./start.sh
+```
+
+Le script va automatiquement :
+- Créer `.env` depuis `.env.example` si nécessaire
+- Générer une `SECRET_KEY` Flask sécurisée
+- Construire et démarrer tous les conteneurs Docker
+- Afficher l'URL de l'application et les identifiants par défaut
+
+**Démarrage rapide sans confirmation :**
+```bash
+./start.sh -y
+```
+
+#### **Option 2 : Configuration Manuelle**
+
 1. **Cloner le dépôt**
 ```bash
 git clone <url-du-depot>
@@ -64,7 +90,7 @@ nano .env  # Éditer avec vos valeurs
 
 3. **Générer la clé secrète Flask**
 ```bash
-python3 generate_secret.py
+python3 scripts/generate_secret.py
 # Copier la clé générée dans .env
 ```
 
@@ -76,6 +102,26 @@ docker-compose up --build -d
 5. **Accéder à l'application**
 ```
 http://localhost:5000
+```
+
+### **Arrêt et Nettoyage**
+
+Utilisez le script de nettoyage pour différents niveaux de nettoyage :
+
+```bash
+# Arrêter les conteneurs (conserve les données)
+./scripts/cleanup.sh stop
+
+# Supprimer conteneurs et volumes (efface les données LDAP)
+./scripts/cleanup.sh clean
+
+# Nettoyage complet (conteneurs + volumes + images Docker)
+./scripts/cleanup.sh purge
+```
+
+**Mode interactif** (avec menu) :
+```bash
+./scripts/cleanup.sh
 ```
 
 ---

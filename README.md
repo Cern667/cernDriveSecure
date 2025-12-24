@@ -52,6 +52,32 @@
 
 ### **Installation**
 
+#### **Option 1: Automated Setup (Recommended)**
+
+The easiest way to get started is using the provided startup script:
+
+```bash
+# Clone the repository
+git clone <repository-url>
+cd nas
+
+# Launch the automated setup
+./start.sh
+```
+
+The script will automatically:
+- Create `.env` from `.env.example` if needed
+- Generate a secure Flask `SECRET_KEY`
+- Build and start all Docker containers
+- Display the application URL and default credentials
+
+**Quick start without confirmation:**
+```bash
+./start.sh -y
+```
+
+#### **Option 2: Manual Setup**
+
 1. **Clone the repository**
 ```bash
 git clone <repository-url>
@@ -66,7 +92,7 @@ nano .env  # Edit with your values
 
 3. **Generate Flask secret key**
 ```bash
-python3 generate_secret.py
+python3 scripts/generate_secret.py
 # Copy the generated key to .env
 ```
 
@@ -78,6 +104,26 @@ docker-compose up --build -d
 5. **Access the application**
 ```
 http://localhost:5000
+```
+
+### **Stopping and Cleanup**
+
+Use the cleanup script for different levels of cleanup:
+
+```bash
+# Stop containers (keeps data)
+./scripts/cleanup.sh stop
+
+# Remove containers and volumes (deletes LDAP data)
+./scripts/cleanup.sh clean
+
+# Full cleanup (containers + volumes + Docker images)
+./scripts/cleanup.sh purge
+```
+
+**Interactive mode** (with menu):
+```bash
+./scripts/cleanup.sh
 ```
 
 ---

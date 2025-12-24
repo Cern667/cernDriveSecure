@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentification Requise - CernCloud</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #0F1115;
+            /* Dark SysAdmin Background */
+            color: #E5E7EB;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auth-card {
+            background: #1A1D21;
+            border: 1px solid #374151;
+            border-radius: 8px;
+            width: 100%;
+            max-width: 480px;
+            padding: 40px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+
+        .icon-lock {
+            font-size: 48px;
+            margin-bottom: 24px;
+            display: inline-block;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        p {
+            color: #9CA3AF;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 32px;
+        }
+
+        .upload-area {
+            border: 2px dashed #374151;
+            border-radius: 8px;
+            padding: 32px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 24px;
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .upload-area:hover {
+            border-color: #3B82F6;
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .upload-area.has-file {
+            border-color: #10B981;
+            background: rgba(16, 185, 129, 0.05);
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background: #3B82F6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background: #2563EB;
+        }
+
+        .btn:disabled {
+            background: #374151;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: #9CA3AF;
+            margin-top: 16px;
+        }
+
+        .btn-secondary:hover {
+            color: white;
+            background: transparent;
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+            display: none;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="auth-card">
+        <div class="icon-lock">🔐</div>
+        <h1>Déchiffrement Requis</h1>
+        <p>
+            Ce fichier est protégé par chiffrement de bout en bout.<br>
+            Veuillez fournir votre <strong>clé privée</strong> pour continuer.
+        </p>
+
+        <form id="uploadForm">
+            <input type="file" id="privateKey" name="private_key" accept=".pem" style="display: none;">
+
+            <div class="upload-area" id="dropZone">
+                <div style="font-size: 24px; margin-bottom: 8px;">📂</div>
+                <div id="fileName" style="font-weight: 500; color: #E5E7EB;">Sélectionner votre clé privée</div>
+                <div style="font-size: 0.85rem; color: #6B7280; margin-top: 4px;">.pem file required</div>
+            </div>
+
+            <div id="errorMsg" style="color: #EF4444; font-size: 0.9rem; margin-bottom: 16px; display: none;"></div>
+
+            <button type="submit" class="btn" id="submitBtn" disabled>
+                <span class="btn-text">Déchiffrer et Télécharger</span>
+                <div class="spinner"></div>
+            </button>
+
+            <button type="button" class="btn btn-secondary" onclick="window.location.href='/'">Annuler</button>
+        </form>
+    </div>
+
+    <script>
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('privateKey');
+        const fileName = document.getElementById('fileName');
+        const submitBtn = document.getElementById('submitBtn');
+        const form = document.getElementById('uploadForm');
+        const errorMsg = document.getElementById('errorMsg');
+        const spinner = document.querySelector('.spinner');
+        const btnText = document.querySelector('.btn-text');
+
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                fileName.textContent = fileInput.files[0].name;
+                dropZone.classList.add('has-file');
+                submitBtn.disabled = false;
+                errorMsg.style.display = 'none';
+            }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            submitBtn.disabled = true;
+            btnText.style.display = 'none';
+            spinner.style.display = 'block';
+
+            const formData = new FormData();
+            formData.append('private_key', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/upload-private-key', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    window.location.href = '{{ redirect_url | safe }}';
+                } else {
+                    throw new Error(data.error || 'Erreur inconnue');
+                }
+            } catch (err) {
+                errorMsg.textContent = err.message;
+                errorMsg.style.display = 'block';
+                submitBtn.disabled = false;
+                btnText.style.display = 'block';
+                spinner.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+
+</html>

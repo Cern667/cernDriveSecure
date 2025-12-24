@@ -94,16 +94,31 @@ def charger_cle_privee(privkey_path):
 
 def charger_cle_publique(pubkey_path):
     """
-    Charge une clé publique X25519 depuis un fichier PEM.
+    Charge une clé publique (EC P-256 ou X25519) depuis un fichier PEM.
 
     Args:
         pubkey_path: Chemin vers le fichier de clé publique
 
     Returns:
-        X25519PublicKey: Clé publique
+        CryptoKey: Clé publique (EC ou X25519)
+        
+    Note:
+        Accepte EC P-256 (Web Crypto API) et X25519 (backend Python)
     """
     with open(pubkey_path, "rb") as f:
         pubkey = serialization.load_pem_public_key(f.read())
+    
+    # ✅ Accepter EC (P-256) et X25519
+    # Web Crypto API génère P-256, backend Python peut générer X25519
+    from cryptography.hazmat.primitives.asymmetric import ec
+    
+    if not isinstance(pubkey, (X25519PublicKey, ec.EllipticCurvePublicKey)):
+        key_type = type(pubkey).__name__
+        raise ValueError(
+            f"Type de clé non supporté : {key_type}. "
+            f"Clés supportées : EC P-256 ou X25519."
+        )
+    
     return pubkey
 
 
@@ -187,22 +202,48 @@ def dechiffrer_fichier_aes(fichier_enc_path, fichier_out_path, cle_aes):
 
 def chiffrer_cle_aes(cle_aes, pubkey):
     """
-    Chiffre une clé AES avec X25519 (ECDH + HKDF + AES-GCM).
+    Chiffre une clé AES avec ECDH (supporte EC P-256 et X25519) + HKDF + AES-GCM.
 
     Args:
         cle_aes: Clé AES à chiffrer (32 bytes)
-        pubkey: Clé publique X25519 du destinataire
+        pubkey: Clé publique du destinataire (EC P-256 ou X25519)
 
     Returns:
         bytes: Clé AES chiffrée (format : ephemeral_pubkey + nonce + ciphertext)
     """
     try:
-        # Génération clé éphémère
-        ephemeral_privkey = X25519PrivateKey.generate()
-        ephemeral_pubkey = ephemeral_privkey.public_key()
-
-        # ECDH : calcul secret partagé
-        shared_secret = ephemeral_privkey.exchange(pubkey)
+        from cryptography.hazmat.primitives.asymmetric import ec
+        from cryptography.hazmat.backends import default_backend
+        
+        # Détecter le type de clé et générer la clé éphémère correspondante
+        if isinstance(pubkey, ec.EllipticCurvePublicKey):
+            # Clé EC P-256 (depuis navigateur)
+            ephemeral_privkey = ec.generate_private_key(ec.SECP256R1(), default_backend())
+            ephemeral_pubkey = ephemeral_privkey.public_key()
+            
+            # ECDH : calcul secret partagé avec EC
+            shared_secret = ephemeral_privkey.exchange(ec.ECDH(), pubkey)
+            
+            # Format de la clé publique éphémère EC (65 bytes non compressé)
+            ephemeral_pubkey_bytes = ephemeral_pubkey.public_bytes(
+                encoding=serialization.Encoding.X962,
+                format=serialization.PublicFormat.UncompressedPoint
+            )
+        elif isinstance(pubkey, X25519PublicKey):
+            # Clé X25519 (backend Python)
+            ephemeral_privkey = X25519PrivateKey.generate()
+            ephemeral_pubkey = ephemeral_privkey.public_key()
+            
+            # ECDH : calcul secret partagé avec X25519
+            shared_secret = ephemeral_privkey.exchange(pubkey)
+            
+            # Format de la clé publique éphémère X25519 (32 bytes)
+            ephemeral_pubkey_bytes = ephemeral_pubkey.public_bytes(
+                encoding=serialization.Encoding.Raw,
+                format=serialization.PublicFormat.Raw
+            )
+        else:
+            raise ValueError(f"Type de clé non supporté: {type(pubkey).__name__}")
 
         # Dérivation de clé (HKDF-SHA256)
         kdf = HKDF(
@@ -217,6 +258,16 @@ def chiffrer_cle_aes(cle_aes, pubkey):
         aesgcm = AESGCM(derived_key)
         nonce = os.urandom(12)
         ciphertext = aesgcm.encrypt(nonce, cle_aes, None)
+
+        # Format : ephemeral_pubkey (32 ou 65 bytes) + nonce (12) + ciphertext (32 + 16 tag)
+        return ephemeral_pubkey_bytes + nonce + ciphertext
+
+    except Exception as e:
+        print(f"❌ Erreur chiffrement clé AES : {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
 
         # Format : ephemeral_pubkey (32) + nonce (12) + ciphertext (32 + 16 tag)
         ephemeral_pubkey_bytes = ephemeral_pubkey.public_bytes(
@@ -314,6 +365,10 @@ def chiffrer_fichier_complet(fichier_path, user_pubkey_path, output_dir="."):
 
         return fichier_enc_path, cle_aes_enc_path
 
+    except ValueError as e:
+        # Erreur de validation de type de clé
+        print(f"❌ Erreur validation clé : {e}")
+        return None, None
     except Exception as e:
         print(f"❌ Erreur chiffrement complet : {e}")
         return None, None
