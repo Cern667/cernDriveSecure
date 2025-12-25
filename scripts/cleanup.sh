@@ -118,7 +118,7 @@ case $choice in
         # Supprimer les images construites
         echo ""
         echo "🗑️  Suppression des images Docker..."
-        docker rmi nas_client nas_server 2>/dev/null || true
+        docker rmi nas-client nas-server nas_client nas_server 2>/dev/null || true
         
         # Supprimer les images inutilisées
         echo ""
