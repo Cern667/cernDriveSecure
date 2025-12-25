@@ -1,30 +1,30 @@
 #!/bin/bash
 # =============================================================================
-# 🧹 CernCloud.Nas - Script de Nettoyage
+# CernCloud.Nas - Cleanup Script
 # =============================================================================
-# Ce script propose 3 niveaux de nettoyage :
-# 1. Arrêt simple      : Conteneurs arrêtés, données conservées
-# 2. Nettoyage standard: Arrêt + suppression volumes
-# 3. Nettoyage complet : Arrêt + volumes + images Docker
+# This script offers 3 cleanup levels:
+# 1. Simple stop     : Containers stopped, data preserved
+# 2. Standard cleanup: Stop + remove volumes
+# 3. Full cleanup    : Stop + volumes + Docker images
 #
 # Usage:
-#   ./cleanup.sh              # Mode interactif (menu)
-#   ./cleanup.sh stop         # Arrêt simple (option 1)
-#   ./cleanup.sh clean        # Nettoyage standard (option 2)
-#   ./cleanup.sh purge        # Nettoyage complet (option 3)
+#   ./cleanup.sh              # Interactive mode (menu)
+#   ./cleanup.sh stop         # Simple stop (option 1)
+#   ./cleanup.sh clean        # Standard cleanup (option 2)
+#   ./cleanup.sh purge        # Full cleanup (option 3)
 # =============================================================================
 
 set -e  # Exit on error
 
-# Se déplacer dans le répertoire du projet
+# Navigate to project directory
 cd "$(dirname "$0")/.."
 
 echo "======================================================================"
-echo "🧹 CernCloud.Nas - Script de Nettoyage"
+echo "CernCloud.Nas - Cleanup Script"
 echo "======================================================================"
 echo ""
 
-# Vérifier si mode automatique (avec argument)
+# Check if automated mode (with argument)
 AUTO_MODE=false
 if [ $# -gt 0 ]; then
     AUTO_MODE=true
@@ -39,118 +39,118 @@ if [ $# -gt 0 ]; then
             choice=3
             ;;
         *)
-            echo "❌ Argument invalide : $1"
+            echo "ERROR: Invalid argument: $1"
             echo ""
             echo "Usage:"
-            echo "  ./cleanup.sh stop   # Arrêt simple"
-            echo "  ./cleanup.sh clean  # Nettoyage standard (avec confirmation)"
-            echo "  ./cleanup.sh purge  # Nettoyage complet (avec confirmation)"
+            echo "  ./cleanup.sh stop   # Simple stop"
+            echo "  ./cleanup.sh clean  # Standard cleanup (with confirmation)"
+            echo "  ./cleanup.sh purge  # Full cleanup (with confirmation)"
             exit 1
             ;;
     esac
 else
-    # Mode interactif : afficher le menu
-    echo "Choisissez le niveau de nettoyage :"
+    # Interactive mode: show menu
+    echo "Choose cleanup level:"
     echo ""
-    echo "1) 🛑 Arrêt simple (conteneurs arrêtés, données conservées)"
-    echo "2) 🗑️  Nettoyage standard (arrêt + suppression volumes)"
-    echo "3) 💥 Nettoyage complet (arrêt + volumes + images Docker)"
-    echo "4) ❌ Annuler"
+    echo "1) Stop containers (data preserved)"
+    echo "2) Standard cleanup (stop + remove volumes)"
+    echo "3) Full cleanup (stop + volumes + Docker images)"
+    echo "4) Cancel"
     echo ""
 
-    read -p "Votre choix (1-4): " choice
+    read -p "Your choice (1-4): " choice
 fi
 
 case $choice in
     1)
         echo ""
         echo "======================================================================"
-        echo "🛑 Arrêt des conteneurs..."
+        echo "Stopping containers..."
         echo "======================================================================"
         docker-compose down
-        
+
         echo ""
-        echo "✅ Conteneurs arrêtés."
-        echo "📦 Volumes conservés (données préservées)"
+        echo "SUCCESS: Containers stopped."
+        echo "INFO: Volumes preserved (data safe)"
         echo ""
-        echo "Pour redémarrer : ./start.sh"
+        echo "To restart: ./start.sh or docker-compose up -d"
         ;;
-        
+
     2)
         echo ""
-        read -p "⚠️  ATTENTION: Cela supprimera TOUTES les données LDAP. Continuer ? (o/N) " -r
+        read -p "WARNING: This will delete ALL LDAP data. Continue? (y/N) " -r
         echo
         if [[ ! $REPLY =~ ^[OoYy]$ ]]; then
-            echo "❌ Annulé."
+            echo "Cancelled."
             exit 0
         fi
-        
+
         echo ""
         echo "======================================================================"
-        echo "🗑️  Nettoyage standard (conteneurs + volumes)..."
+        echo "Standard cleanup (containers + volumes)..."
         echo "======================================================================"
         docker-compose down -v
-        
+
         echo ""
-        echo "✅ Conteneurs et volumes supprimés."
-        echo "📂 Données locales préservées (storage/, user_keys/)"
+        echo "SUCCESS: Containers and volumes removed."
+        echo "INFO: Local data preserved (storage/, user_keys/)"
         echo ""
-        echo "Pour redémarrer : ./start.sh"
+        echo "To restart: ./start.sh or docker-compose up -d"
         ;;
-        
+
     3)
         echo ""
-        read -p "💥 ATTENTION: Cela supprimera TOUTES les données ET les images Docker. Continuer ? (o/N) " -r
+        read -p "WARNING: This will delete ALL data AND Docker images. Continue? (y/N) " -r
         echo
         if [[ ! $REPLY =~ ^[OoYy]$ ]]; then
-            echo "❌ Annulé."
+            echo "Cancelled."
             exit 0
         fi
-        
+
         echo ""
         echo "======================================================================"
-        echo "💥 Nettoyage complet (conteneurs + volumes + images)..."
+        echo "Full cleanup (containers + volumes + images)..."
         echo "======================================================================"
-        
-        # Arrêter et supprimer tout
+
+        # Stop and remove everything
         docker-compose down -v
-        
-        # Supprimer les images construites
+
+        # Remove built images
         echo ""
-        echo "🗑️  Suppression des images Docker..."
+        echo "Removing Docker images..."
         docker rmi nas-client nas-server nas_client nas_server 2>/dev/null || true
-        
-        # Supprimer les images inutilisées
+
+        # Remove unused images
         echo ""
-        echo "🧹 Nettoyage des images inutilisées..."
+        echo "Cleaning unused images..."
         docker image prune -f
-        
+
         echo ""
-        echo "✅ Nettoyage complet terminé."
+        echo "SUCCESS: Full cleanup completed."
         echo ""
-        echo "Supprimé :"
-        echo "  - ✅ Conteneurs"
-        echo "  - ✅ Volumes Docker"
-        echo "  - ✅ Images Docker (nas_client, nas_server)"
+        echo "Removed:"
+        echo "  - Containers"
+        echo "  - Docker volumes"
+        echo "  - Docker images (nas-client, nas-server)"
         echo ""
-        echo "📂 Données locales préservées (storage/, user_keys/)"
+        echo "INFO: Local data preserved (storage/, user_keys/)"
         echo ""
-        echo "⚠️  Note: Au prochain démarrage, les images seront reconstruites."
-        echo "Pour redémarrer : ./start.sh"
+        echo "NOTE: On next startup, images will be rebuilt."
+        echo "To restart: ./start.sh or docker-compose up --build -d"
         ;;
-        
+
     4)
-        echo "❌ Annulé."
+        echo "Cancelled."
         exit 0
         ;;
-        
+
     *)
-        echo "❌ Choix invalide."
+        echo "ERROR: Invalid choice."
         exit 1
         ;;
 esac
 
 echo ""
 echo "======================================================================"
-echo "🏁 Nettoyage terminé"
+echo "Cleanup completed"
 echo "======================================================================"

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Gestionnaire d'autorisation d'appareils via QR Code
-Gère les sessions temporaires d'autorisation (60 secondes)
+QR code device authorization manager
+Manages temporary authorization sessions (60 seconds)
 """
 
 import os
@@ -12,23 +12,23 @@ from typing import Optional, Dict, Tuple
 import threading
 import time
 
-# Fichier de stockage des sessions d'autorisation (temporaire)
-# Utilise /tmp pour tests locaux, /app/data en production Docker
+# Authorization session storage file
+# Uses /tmp for local tests, /app/data in Docker production
 import sys
 if os.path.exists('/app/data'):
     SESSIONS_FILE = '/app/data/authorization_sessions.json'
 else:
     SESSIONS_FILE = '/tmp/authorization_sessions.json'
 
-# Lock pour accès concurrent
+# Lock for concurrent access
 _sessions_lock = threading.Lock()
 
 def _ensure_data_dir():
-    """Crée le répertoire data s'il n'existe pas"""
+    """Creates data directory if it doesn't exist"""
     os.makedirs(os.path.dirname(SESSIONS_FILE), exist_ok=True)
 
 def _load_sessions() -> Dict:
-    """Charge les sessions d'autorisation"""
+    """Loads authorization sessions"""
     _ensure_data_dir()
     if not os.path.exists(SESSIONS_FILE):
         return {}
@@ -37,20 +37,20 @@ def _load_sessions() -> Dict:
         with open(SESSIONS_FILE, 'r') as f:
             return json.load(f)
     except Exception as e:
-        print(f"⚠️ Erreur chargement sessions: {e}")
+        print(f"Warning: Error loading sessions: {e}")
         return {}
 
 def _save_sessions(sessions: Dict):
-    """Sauvegarde les sessions d'autorisation"""
+    """Saves authorization sessions"""
     _ensure_data_dir()
     try:
         with open(SESSIONS_FILE, 'w') as f:
             json.dump(sessions, f, indent=2)
     except Exception as e:
-        print(f"❌ Erreur sauvegarde sessions: {e}")
+        print(f"Error saving sessions: {e}")
 
 def _cleanup_expired_sessions():
-    """Nettoie les sessions expirées"""
+    """Cleans up expired sessions"""
     with _sessions_lock:
         sessions = _load_sessions()
         now = datetime.utcnow()
@@ -66,11 +66,11 @@ def _cleanup_expired_sessions():
         
         if expired_sessions:
             _save_sessions(sessions)
-            print(f"🧹 {len(expired_sessions)} session(s) expirée(s) nettoyée(s)")
+            print(f"{len(expired_sessions)} expired session(s) cleaned")
 
 
 class AuthorizationSession:
-    """Gestion des sessions d'autorisation par QR code"""
+    """QR code authorization session management"""
     
     @staticmethod
     def create_session(
@@ -81,7 +81,7 @@ class AuthorizationSession:
         max_age_seconds: int = 60
     ) -> Dict:
         """
-        Créeune session d'autorisation temporaire
+        Creates a temporary authorization session
         
         Args:
             username: Nom d'utilisateur
@@ -122,7 +122,7 @@ class AuthorizationSession:
             sessions[session_id] = session_data
             _save_sessions(sessions)
         
-        print(f"📝 Session d'autorisation créée: {session_id} (expire dans {max_age_seconds}s)")
+        print(f"Authorization session created: {session_id} (expires in {max_age_seconds}s)")
         
         return {
             "success": True,
@@ -135,13 +135,13 @@ class AuthorizationSession:
     @staticmethod
     def get_session(session_id: str) -> Optional[Dict]:
         """
-        Récupère une session d'autorisation
-        
+        Retrieves an authorization session
+
         Args:
-            session_id: ID de la session
-        
+            session_id: Session ID
+
         Returns:
-            Données de la session ou None si inexistant/expiré
+            Session data or None if nonexistent/expired
         """
         with _sessions_lock:
             sessions = _load_sessions()
@@ -151,10 +151,10 @@ class AuthorizationSession:
             
             session_data = sessions[session_id]
             
-            # Vérifier expiration
+            # Check expiration
             expires_at = datetime.fromisoformat(session_data["expires_at"])
             if datetime.utcnow() > expires_at:
-                # Session expirée
+                # Session expired
                 session_data["status"] = "expired"
                 _save_sessions(sessions)
                 return session_data
@@ -169,49 +169,49 @@ class AuthorizationSession:
         signer_pubkey_ed25519: str
     ) -> Tuple[bool, str, Optional[Dict]]:
         """
-        Autorise une session après vérification de la signature
-        
+        Authorizes a session after signature verification
+
         Args:
-            session_id: ID de la session
-            signature_base64: Signature Ed25519 en base64
-            signer_device_id: ID de l'appareil qui signe
-            signer_pubkey_ed25519: Clé publique de l'appareil qui signe
-        
+            session_id: Session ID
+            signature_base64: Ed25519 signature in base64
+            signer_device_id: ID of the signing device
+            signer_pubkey_ed25519: Public key of the signing device
+
         Returns:
-            Tuple (succès, message, device_info)
+            Tuple (success, message, device_info)
         """
-        # Récupérer la session
+        # Retrieve session
         session_data = AuthorizationSession.get_session(session_id)
-        
+
         if not session_data:
-            return False, "Session introuvable", None
-        
+            return False, "Session not found", None
+
         if session_data["status"] == "expired":
-            return False, "Session expirée", None
-        
+            return False, "Session expired", None
+
         if session_data["status"] == "authorized":
-            return False, "Session déjà autorisée", None
-        
-        # Vérifier la signature
+            return False, "Session already authorized", None
+
+        # Verify signature
         from device_keys import verify_authorization_signature, create_authorization_message
         
         timestamp = session_data["timestamp"]
         new_device_pubkey = session_data["new_device_pubkey_ed25519"]
-        
-        # Vérifier signature
+
+        # Verify signature
         success, message = verify_authorization_signature(
             session_id,
             new_device_pubkey,
             timestamp,
             signature_base64,
             signer_pubkey_ed25519,
-            max_age_seconds=120  # 2 minutes de tolérance
+            max_age_seconds=120  # 2 minutes tolerance
         )
-        
+
         if not success:
-            return False, f"Signature invalide: {message}", None
-        
-        # Autoriser la session
+            return False, f"Invalid signature: {message}", None
+
+        # Authorize session
         with _sessions_lock:
             sessions = _load_sessions()
             if session_id in sessions:
@@ -220,9 +220,9 @@ class AuthorizationSession:
                 sessions[session_id]["authorized_at"] = datetime.utcnow().isoformat()
                 _save_sessions(sessions)
         
-        print(f"✅ Session {session_id} autorisée par {signer_device_id}")
-        
-        # Retourner les infos du nouvel appareil
+        print(f"Session {session_id} authorized by {signer_device_id}")
+
+        # Return new device info
         device_info = {
             "fingerprint": session_data["new_device_fingerprint"],
             "device_public_key_ed25519": session_data["new_device_pubkey_ed25519"],
@@ -230,18 +230,18 @@ class AuthorizationSession:
             "authorized_by": signer_device_id
         }
         
-        return True, "Session autorisée", device_info
+        return True, "Session authorized", device_info
     
     @staticmethod
     def check_authorization_status(session_id: str) -> Dict:
         """
-        Vérifie le statut d'autorisation d'une session
-        
+        Checks the authorization status of a session
+
         Args:
-            session_id: ID de la session
-        
+            session_id: Session ID
+
         Returns:
-            Dict avec status (pending/authorized/expired/not_found)
+            Dict with status (pending/authorized/expired/not_found)
         """
         session_data = AuthorizationSession.get_session(session_id)
         
@@ -255,19 +255,17 @@ class AuthorizationSession:
     
     @staticmethod
     def cleanup_all_sessions():
-        """Supprime toutes les sessions (pour tests/nettoyage)"""
+        """Deletes all sessions (for tests/cleanup)"""
         _ensure_data_dir()
         if os.path.exists(SESSIONS_FILE):
             os.remove(SESSIONS_FILE)
-            print("🗑️ Toutes les sessions supprimées")
+            print("All sessions deleted")
 
 
-# ============================================================================
-# AUTO-CLEANUP THREAD (optionnel)
-# ============================================================================
+# Auto-cleanup thread
 
 class SessionCleanupThread(threading.Thread):
-    """Thread de nettoyage automatique des sessions expirées"""
+    """Auto-cleanup thread for expired sessions"""
     
     def __init__(self, interval_seconds=30):
         super().__init__(daemon=True)
@@ -279,7 +277,7 @@ class SessionCleanupThread(threading.Thread):
             try:
                 _cleanup_expired_sessions()
             except Exception as e:
-                print(f"❌ Erreur cleanup thread: {e}")
+                print(f"Cleanup thread error: {e}")
             
             time.sleep(self.interval)
     
@@ -287,27 +285,23 @@ class SessionCleanupThread(threading.Thread):
         self.running = False
 
 
-# Global cleanup thread (démarre automatiquement)
 _cleanup_thread = None
 
 def start_cleanup_thread(interval_seconds=30):
-    """Démarre le thread de nettoyage automatique"""
+    """Starts auto-cleanup thread"""
     global _cleanup_thread
     if _cleanup_thread is None or not _cleanup_thread.is_alive():
         _cleanup_thread = SessionCleanupThread(interval_seconds)
         _cleanup_thread.start()
-        print(f"🧹 Thread de nettoyage démarré (intervalle: {interval_seconds}s)")
+        print(f"Cleanup thread started (interval: {interval_seconds}s)")
 
 
-# ============================================================================
-# TESTS
-# ============================================================================
-
+# Tests
 if __name__ == "__main__":
-    print("🧪 Tests du gestionnaire d'autorisation QR\n")
-    
-    # Test 1 : Création de session
-    print("1️⃣ Création d'une session d'autorisation...")
+    print("QR authorization manager tests\n")
+
+    # Test 1: Create session
+    print("1. Creating authorization session...")
     session_result = AuthorizationSession.create_session(
         username="testuser",
         new_device_fingerprint="new_device_abc123",
@@ -320,70 +314,70 @@ if __name__ == "__main__":
         max_age_seconds=60
     )
     print(f"   {session_result}\n")
-    
+
     session_id = session_result["session_id"]
-    
-    # Test 2 : Récupération de session
-    print("2️⃣ Récupération de la session...")
+
+    # Test 2: Retrieve session
+    print("2. Retrieving session...")
     session_data = AuthorizationSession.get_session(session_id)
-    print(f"   ✅ Session trouvée: {session_data['status']}\n")
-    
-    # Test 3 : Vérification statut
-    print("3️⃣ Vérification du statut...")
+    print(f"   Session found: {session_data['status']}\n")
+
+    # Test 3: Check status
+    print("3. Checking status...")
     status = AuthorizationSession.check_authorization_status(session_id)
-    print(f"   📊 Statut: {status}\n")
-    
-    # Test 4 : Autorisation (simulation)
-    print("4️⃣ Autorisation de la session...")
-    
-    # Générer une vraie paire de clés pour le test
+    print(f"   Status: {status}\n")
+
+    # Test 4: Authorization (simulation)
+    print("4. Authorizing session...")
+
+    # Generate real keypair for test
     from device_keys import generate_device_keypair_ed25519, sign_message_ed25519, create_authorization_message
     import base64
     
     signer_privkey, signer_pubkey = generate_device_keypair_ed25519()
     signer_privkey_b64 = base64.b64encode(signer_privkey).decode('utf-8')
     signer_pubkey_b64 = base64.b64encode(signer_pubkey).decode('utf-8')
-    
-    # Créer le message d'autorisation
+
+    # Create authorization message
     auth_message = create_authorization_message(
         session_id,
         "base64_ed25519_pubkey",
         session_data["timestamp"]
     )
-    
-    # Signer
+
+    # Sign
     signature = sign_message_ed25519(signer_privkey_b64, auth_message)
-    
-    # Autoriser
+
+    # Authorize
     success, message, device_info = AuthorizationSession.authorize_session(
         session_id,
         signature,
         "device_signer_123",
         signer_pubkey_b64
     )
-    
-    print(f"   ✅ Autorisation: {message}\n")
-    
-    # Test 5 : Vérifier changement de statut
-    print("5️⃣ Vérification après autorisation...")
+
+    print(f"   Authorization: {message}\n")
+
+    # Test 5: Check status after authorization
+    print("5. Checking after authorization...")
     status_after = AuthorizationSession.check_authorization_status(session_id)
-    print(f"   📊 Nouveau statut: {status_after}\n")
-    
-    # Test 6 : Session expirée
-    print("6️⃣ Test session expirée...")
+    print(f"   New status: {status_after}\n")
+
+    # Test 6: Expired session
+    print("6. Testing expired session...")
     expired_session = AuthorizationSession.create_session(
         username="testuser2",
         new_device_fingerprint="device_xyz",
         new_device_pubkey_ed25519="pubkey_xyz",
         device_info={},
-        max_age_seconds=0  # Expire immédiatement
+        max_age_seconds=0  # Expires immediately
     )
-    
+
     time.sleep(1)
     expired_data = AuthorizationSession.get_session(expired_session["session_id"])
-    print(f"   ⏰ Session expirée: {expired_data['status'] == 'expired'}\n")
-    
-    # Nettoyage
-    print("7️⃣ Nettoyage...")
+    print(f"   Session expired: {expired_data['status'] == 'expired'}\n")
+
+    # Cleanup
+    print("7. Cleanup...")
     AuthorizationSession.cleanup_all_sessions()
-    print("   ✅ Tests terminés\n")
+    print("   Tests completed\n")

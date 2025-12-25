@@ -17,7 +17,7 @@ from lib.auth.security_manager import get_security_manager, SECURITY_LEVEL_STAND
 try:
     from lib.monitoring.activity_logger import get_activity_logger
 except ImportError:
-    # Si l'import échoue, ajouter le chemin parent et réessayer
+    # If import fails, add parent path and retry
     parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if parent_dir not in sys.path:
         sys.path.insert(0, parent_dir)
@@ -32,7 +32,7 @@ app = Flask(__name__)
 APP_PORT = int(os.environ.get('FLASK_PORT', '5000'))
 
 # =============================
-# 🔧 CONFIGURATION FLASK & LDAP
+# FLASK & LDAP CONFIGURATION
 # =============================
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "supersecretkey")
 
@@ -132,7 +132,7 @@ def ldap_authenticate(username, password):
         return False
 
 # =========================================
-# 🧪 MOCK LDAP (optionnel pour démo locale)
+# MOCK LDAP (optional for local demo)
 # =========================================
 def load_ldif_users(ldif_path):
     users = {}
@@ -182,7 +182,7 @@ def mock_authenticate(username, password):
     return expected is not None and expected == password
 
 # =========================================
-# 🔧 OUTILS POUR LA COMMUNICATION SOCKET
+# SOCKET COMMUNICATION UTILITIES
 # =========================================
 def send_prefixed_string(sock, text):
     text_bytes = text.encode('utf-8')
@@ -194,7 +194,7 @@ def start_command(sock, command, username):
     send_prefixed_string(sock, username)
 
 # =========================================
-# 🔒 AUTHENTIFICATION & DÉCORATEURS
+# AUTHENTICATION & DECORATORS
 # =========================================
 def login_required(f):
     @wraps(f)
@@ -205,14 +205,14 @@ def login_required(f):
     return decorated_function
 
 # =========================================
-# 🩺 HEALTHCHECK
+# HEALTHCHECK
 # =========================================
 @app.route('/healthz', methods=['GET'])
 def healthz():
     return 'ok', 200
 
 # =========================================
-# 🔎 LDAP HEALTH
+# LDAP HEALTH
 # =========================================
 @app.route('/ldap/health', methods=['GET'])
 def ldap_health():
@@ -225,7 +225,7 @@ def ldap_health():
         return f"ldap unreachable on {host}:{port} ({e})", 503
 
 # =========================================
-# 🔐 ROUTE DE LOGIN
+# LOGIN ROUTE
 # =========================================
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -233,9 +233,9 @@ def login():
         username, password = request.form['username'], request.form['password']
         # Normaliser le nom d'utilisateur en minuscules pour éviter les doublons
         username = username.lower().strip()
-        print("🔎 Tentative LDAP:", username)
+        print("[LDAP] Tentative:", username)
 
-        # Récupérer l'IP et le user agent pour logging
+        # Get IP and user agent for logging
         ip_address = request.remote_addr
         user_agent = request.headers.get('User-Agent', '')
         logger = get_activity_logger()
@@ -246,17 +246,17 @@ def login():
             if ok:
                 session['logged_in'] = True
                 session['username'] = username
-                print(f"✅ (MOCK) Utilisateur {username} connecté avec succès.")
+                print(f"[MOCK] User {username} connected successfully.")
 
                 # Logger la connexion réussie
                 logger.log_activity(username, 'LOGIN', ip_address, 'SUCCESS',
                                   'Connexion réussie (MOCK LDAP)', user_agent=user_agent)
 
-                # Vérifier si les clés existent
+                # Check if keys exist
                 if not user_has_keys(username):
                     return redirect(url_for('setup_keys'))
                 return redirect(url_for('index'))
-            print(f"❌ (MOCK) Échec d'authentification pour {username}.")
+            print(f"[MOCK] Authentication failed for {username}.")
 
             # Logger l'échec de connexion
             logger.log_activity(username, 'LOGIN_FAILED', ip_address, 'FAILED',
@@ -275,7 +275,7 @@ def login():
                     if ok:
                         session['logged_in'] = True
                         session['username'] = username
-                        # Vérifier si les clés existent
+                        # Check if keys exist
                         if not user_has_keys(username):
                             return redirect(url_for('setup_keys'))
                         return redirect(url_for('index'))
@@ -284,13 +284,13 @@ def login():
             if ldap_authenticate(username, password):
                 session['logged_in'] = True
                 session['username'] = username
-                print(f"✅ Utilisateur {username} connecté.")
+                print(f"[LOGIN] User {username} connected.")
 
                 # Logger la connexion réussie
                 logger.log_activity(username, 'LOGIN', ip_address, 'SUCCESS',
                                   'Connexion réussie', user_agent=user_agent)
 
-                # ✅ ADMIN : accès direct sans clés
+                # ADMIN: direct access without keys
                 if username == app.config['ADMIN_USERNAME']:
                     print(f"[ADMIN] {username} → Accès direct")
                     return redirect(url_for('index'))
@@ -299,7 +299,7 @@ def login():
                 security_mgr = get_security_manager()
                 security_level = security_mgr.get_user_security_level(username)
 
-                # ✅ Si l'utilisateur n'a pas encore de niveau défini, utiliser le mode global
+                # If user doesn't have a security level yet, use global mode
                 if username not in security_mgr.users_security:
                     import sys
                     parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -324,14 +324,14 @@ def login():
 
                     has_keys = has_registered_key(username)
 
-                    # ✅ IMPORTANT: Vérifier que les clés sont du bon type (X25519 pour mode maximum)
+                    # IMPORTANT: Check that keys are the right type (X25519 for maximum mode)
                     if has_keys:
                         key_type = get_user_key_type(username)
                         is_compatible = has_compatible_keys(username, 'maximum')
 
                         if not is_compatible:
                             # Clés incompatibles (EC au lieu de X25519) → Forcer régénération
-                            print(f"[SECURITY MAX] ⚠️ {username} → Clés incompatibles (type: {key_type}, attendu: X25519)")
+                            print(f"[SECURITY MAX] WARNING: {username} → Incompatible keys (type: {key_type}, expected: X25519)")
                             print(f"[SECURITY MAX] {username} → Redirection vers setup pour régénération")
 
                             # Supprimer les anciennes clés incompatibles
@@ -340,7 +340,7 @@ def login():
                                 import shutil
                                 shutil.rmtree(user_key_dir)
                                 os.makedirs(user_key_dir)
-                                print(f"[SECURITY MAX] 🗑️ Anciennes clés {key_type} supprimées pour {username}")
+                                print(f"[SECURITY MAX] Old {key_type} keys deleted for {username}")
 
                             return redirect(url_for('setup_keys'))
 
@@ -377,7 +377,7 @@ def login():
                     print(f"[SECURITY STD] {username} → Accès direct au dashboard")
                     return redirect(url_for('index'))
             else:
-                print(f"❌ Échec auth pour {username}")
+                print(f"[LOGIN] Authentication failed for {username}")
 
                 # Logger l'échec de connexion
                 logger.log_activity(username, 'LOGIN_FAILED', ip_address, 'FAILED',
@@ -393,7 +393,7 @@ def logout():
     return redirect(url_for('login'))
 
 # =========================================
-# 🔑 SETUP DES CLES UTILISATEUR
+# USER KEY SETUP
 # =========================================
 def user_has_keys(username):
     """Verifie si l'utilisateur a ses cles generees."""
@@ -422,7 +422,7 @@ def generate_keys():
         sys.path.append(os.path.dirname(os.path.dirname(__file__)))
         from lib.auth.device_manager import has_registered_key, is_device_authorized
         
-        # Vérifier si l'user a déjà des clés
+        # Check if user already has keys
         has_keys = has_registered_key(username)
         
         if has_keys:
@@ -454,7 +454,7 @@ def generate_keys():
     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
     from lib.auth.device_manager import register_device, has_registered_key
     
-    # Vérifier qu'il n'y a pas déjà de clés
+    # Check that keys don't already exist
     if has_registered_key(username):
         return jsonify({'success': False, 'error': 'Clés déjà enregistrées'}), 400
     
@@ -479,7 +479,7 @@ def generate_keys():
     from cryptography.hazmat.primitives.asymmetric import ec
     
     try:
-        # ⚠️ IMPORTANT: Web Crypto API ne supporte PAS X25519 !
+        # IMPORTANT: Web Crypto API does NOT support X25519!
         # Le JavaScript génère des clés ECDH P-256 (65 bytes raw format)
         # On doit donc accepter les clés EC, pas X25519
         
@@ -508,10 +508,10 @@ def generate_keys():
         import shutil
         shutil.copy(pubkey_path, os.path.join(storage_user_dir, 'public_key.pem'))
         
-        print(f"[KEYS ZK] ✅ Clé publique P-256 (ECDH) sauvegardée pour {username}")
+        print(f"[KEYS ZK] P-256 (ECDH) public key saved for {username}")
         
     except Exception as e:
-        print(f"[KEYS ZK] ❌ Erreur: {e}")
+        print(f"[KEYS ZK] Error: {e}")
         return jsonify({'success': False,'error': str(e)}), 500
     
     logger = get_activity_logger()
@@ -570,10 +570,10 @@ def _generate_basic_keys_for_user(username: str):
         shutil.copy(os.path.join(user_keys_dir, 'public_key.pem'), 
                     os.path.join(storage_user_dir, 'public_key.pem'))
         
-        print(f"[KEYS STANDARD] ✅ Clés basiques générées pour {username}")
+        print(f"[KEYS STANDARD] Basic keys generated for {username}")
         return True
     except Exception as e:
-        print(f"[KEYS STANDARD] ❌ Erreur génération clés pour {username}: {e}")
+        print(f"[KEYS STANDARD] Key generation error for {username}: {e}")
         return False
 
 @app.route('/download-private-key')
@@ -600,7 +600,7 @@ def download_private_key():
         if not key_data or not key_data.get('encrypted_private_key'):
             return "Clé privée chiffrée introuvable. Veuillez configurer vos clés.", 404
 
-        # Créer un fichier JSON temporaire avec les données de clé chiffrée
+        # Create temporary JSON file with encrypted key data
         import tempfile
         import json
 
@@ -644,7 +644,7 @@ def download_private_key():
     )
 
 # =========================================
-# 🔐 API ZERO-KNOWLEDGE
+# ZERO-KNOWLEDGE API
 # =========================================
 
 @app.route('/api/get-encrypted-key', methods=['GET'])
@@ -723,7 +723,7 @@ def devices_management():
 
 
 # =========================================
-# 🔐 API QR DEVICE AUTHORIZATION
+# QR DEVICE AUTHORIZATION API
 # =========================================
 
 @app.route('/api/request-device-authorization', methods=['POST'])
@@ -743,7 +743,7 @@ def api_request_device_authorization():
     if not all([device_fingerprint, device_public_key_ed25519]):
         return jsonify({'success': False, 'error': 'Données manquantes'}), 400
     
-    # Créer une session d'autorisation
+    # Create authorization session
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
     from lib.auth.qr_authorization import AuthorizationSession
@@ -774,7 +774,7 @@ def api_generate_qr_authorization():
     if not session_id:
         return jsonify({'success': False, 'error': 'session_id manquant'}), 400
     
-    # Récupérer la session
+    # Get session
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
     from lib.auth.qr_authorization import AuthorizationSession
@@ -831,7 +831,7 @@ def api_authorize_device():
     if not all([session_id, signature, signer_device_id]):
         return jsonify({'success': False, 'error': 'Données manquantes'}), 400
     
-    # Vérifier que signer_device_id appartient à l'utilisateur
+    # Check that signer_device_id belongs to the user
     import sys
     sys.path.append(os.path.dirname(os.path.dirname(__file__)))
     from lib.auth.device_manager import list_user_devices, register_device, get_encrypted_private_key
@@ -889,7 +889,7 @@ def api_authorize_device():
         user_agent=request.headers.get('User-Agent', '')
     )
     
-    print(f"[QR AUTH] ✅ Nouvel appareil autorisé pour {username}: {register_result['device_id']}")
+    print(f"[QR AUTH] New device authorized for {username}: {register_result['device_id']}")
     
     return jsonify({
         'success': True,
@@ -1000,7 +1000,7 @@ def authorize_with_code():
             with open(session_file, 'r') as f:
                 session_data = json.load(f)
             
-            # Vérifier code + expiration
+            # Check code + expiration
             if session_data['auth_code'] == auth_code:
                 age = int(time.time()) - session_data['created_at']
                 if age > 60:
@@ -1011,7 +1011,7 @@ def authorize_with_code():
                 with open(session_file, 'w') as f:
                     json.dump(session_data, f)
                 
-                print(f"[AUTH CODE] ✅ Code validé : {auth_code}")
+                print(f"[AUTH CODE] Code validated: {auth_code}")
                 return jsonify({'success': True, 'message': 'Appareil autorisé'})
         
         except Exception as e:
@@ -1043,7 +1043,7 @@ def check_auth_status():
         return jsonify({'status': 'not_found'}), 404
 
 # =========================================
-# 🏠 PAGE D'ACCUEIL
+# HOME PAGE
 # =========================================
 @app.route('/')
 @login_required
@@ -1051,7 +1051,7 @@ def index():
     username = session.get('username')
     is_admin = (username == app.config['ADMIN_USERNAME'])
 
-    # Récupérer le niveau de sécurité et les appareils
+    # Get security level and devices
     security_mgr = get_security_manager()
     security_level = security_mgr.get_user_security_level(username)
     devices_count = len(security_mgr.get_user_devices(username))
@@ -1097,7 +1097,7 @@ def index():
 
     storage_percent = (storage_used_mb / (storage_limit_gb * 1024)) * 100
 
-    # Récupérer les 3 dernières activités de l'utilisateur
+    # Get last 3 user activities
     logger = get_activity_logger()
     recent_activities = logger.get_user_logs(username, limit=3)
 
@@ -1112,7 +1112,7 @@ def index():
                          recent_activities=recent_activities)
 
 # =========================================
-# 📤 UPLOAD DE FICHIERS
+# FILE UPLOAD
 # =========================================
 @app.route('/upload', methods=['POST'])
 @login_required
@@ -1120,7 +1120,7 @@ def upload_files():
     username = session.get('username')
     is_admin = (username == app.config['ADMIN_USERNAME'])
 
-    # Récupérer le niveau de sécurité pour le template
+    # Get security level for template
     security_mgr = get_security_manager()
     security_level = security_mgr.get_user_security_level(username)
     devices_count = len(security_mgr.get_user_devices(username))
@@ -1158,19 +1158,19 @@ def upload_files():
     print(f"[UPLOAD X25519] Current path: '{current_path}'")
 
 
-    # Vérifier la clé publique de l'utilisateur
+    # Check user's public key
     user_pubkey_path = os.path.join(USER_KEYS_DIR, username, 'public_key.pem')
     print(f"[UPLOAD X25519] Utilisateur : {username}")
     print(f"[UPLOAD X25519] Clé publique : {user_pubkey_path}")
 
     if not os.path.exists(user_pubkey_path):
-        print(f"[UPLOAD X25519] ❌ Clé publique introuvable")
+        print(f"[UPLOAD X25519] Public key not found")
         
         # En mode standard, générer les clés automatiquement
         if security_level == SECURITY_LEVEL_STANDARD:
             print(f"[UPLOAD X25519] Tentative de génération automatique des clés...")
             if _generate_basic_keys_for_user(username):
-                # Vérifier à nouveau après génération
+                # Check again after generation
                 if not os.path.exists(user_pubkey_path):
                     return render_template('index.html', username=username, is_admin=is_admin,
                         security_level=security_level, devices_count=devices_count,
@@ -1197,7 +1197,7 @@ def upload_files():
                 recent_activities=recent_activities,
                 message=f"Erreur : Clés zero-knowledge requises. Configurez vos clés depuis les paramètres.")
     
-    # ✅ VALIDATION : Vérifier que la clé est du bon type
+    # VALIDATION: Check that the key is the right type
     # NOTE: En mode maximum, on ACCEPTE les clés EC (P-256) car Web Crypto API
     # ne supporte pas X25519. Le JavaScript génère des clés ECDH P-256.
     if security_level == SECURITY_LEVEL_MAXIMUM:
@@ -1210,14 +1210,14 @@ def upload_files():
         
         # En mode maximum, on accepte EC (P-256) car c'est ce que génère Web Crypto
         if key_type not in ['EC', 'X25519']:
-            print(f"[UPLOAD] ❌ Clé invalide : {key_type}")
+            print(f"[UPLOAD] Invalid key: {key_type}")
             return render_template('index.html', username=username, is_admin=is_admin,
                 security_level=security_level, devices_count=devices_count,
                 storage_used_mb=round(storage_used_mb, 2),
                 storage_percent=round(storage_percent, 1),
                 storage_limit_gb=storage_limit_gb,
                 recent_activities=recent_activities,
-                message=f"⚠️ Type de clé invalide. Veuillez vous reconnecter.")
+                message=f"WARNING: Invalid key type. Please reconnect.")
 
 
     try:
@@ -1239,7 +1239,7 @@ def upload_files():
                 print(f"[UPLOAD X25519] Résultat : enc={fichier_enc_path}, key={cle_aes_enc_path}")
 
                 if fichier_enc_path and cle_aes_enc_path:
-                    print(f"[UPLOAD X25519] ✅ Chiffrement réussi, envoi au serveur...")
+                    print(f"[UPLOAD X25519] Encryption successful, sending to server...")
 
                     # Construct full path including current_path if provided
                     if current_path:
@@ -1269,10 +1269,10 @@ def upload_files():
                     with open(cle_aes_enc_path, 'rb') as f_key:
                         while chunk := f_key.read(4096):
                             s.sendall(chunk)
-                    print(f"[UPLOAD X25519] ✅ Clé uploadée : {key_rel_path}")
+                    print(f"[UPLOAD X25519] Key uploaded: {key_rel_path}")
 
                     count += 1
-                    print(f"[UPLOAD X25519] ✅ Fichier complet uploadé (enc + key)")
+                    print(f"[UPLOAD X25519] Complete file uploaded (enc + key)")
 
                     # Logger l'upload réussi avec le chemin complet
                     logger = get_activity_logger()
@@ -1284,13 +1284,13 @@ def upload_files():
                     os.remove(fichier_enc_path)
                     os.remove(cle_aes_enc_path)
                 else:
-                    print(f"[UPLOAD X25519] ❌ Chiffrement échoué pour {file.filename}")
+                    print(f"[UPLOAD X25519] Encryption failed for {file.filename}")
 
                 os.remove(temp_orig_path)
 
             s.sendall(b'E')
 
-        # Si c'est une requête AJAX (depuis restore.html), retourner JSON
+        # If AJAX request (from restore.html), return JSON
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.form.get('current_path') is not None:
             return jsonify({'success': True, 'message': f'{count}/{len(files)} fichier(s) uploadé(s) avec succès'}), 200
 
@@ -1303,7 +1303,7 @@ def upload_files():
             recent_activities=recent_activities,
             message=msg)
     except Exception as e:
-        # Si c'est une requête AJAX, retourner JSON
+        # If AJAX request, return JSON
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.form.get('current_path') is not None:
             return jsonify({'success': False, 'message': str(e)}), 500
 
@@ -1316,7 +1316,7 @@ def upload_files():
             message=f"Erreur Critique : {e}")
 
 # =========================================
-# 📥 RESTAURATION
+# FILE RESTORATION
 # =========================================
 @app.route('/restore')
 @app.route('/restore/<path:current_path>')
@@ -1392,7 +1392,7 @@ def restore_page(current_path=''):
             else:
                 return f"{size_bytes / (1024 * 1024 * 1024):.1f} GB"
 
-        # Créer une liste de fichiers avec leurs informations
+        # Create file list with their information
         files_with_sizes = []
         for file in file_list:
             size_bytes = file_sizes.get(file, 0)
@@ -1418,7 +1418,7 @@ def restore_page(current_path=''):
         is_admin = (username == app.config['ADMIN_USERNAME'])
         message = request.args.get('message')
 
-        # Récupérer les derniers logs d'upload de l'utilisateur
+        # Get user's latest upload logs
         logger = get_activity_logger()
         all_logs = logger.get_user_logs(username, limit=50)
         # Filtrer uniquement les logs d'upload réussis
@@ -1443,7 +1443,7 @@ def restore_page(current_path=''):
         return f"<h1>Erreur de connexion</h1><p>{e}</p>"
 
 # =========================================
-# 🔍 API: TOUS LES FICHIERS (pour la recherche globale)
+# API: ALL FILES (for global search)
 # =========================================
 @app.route('/api/all_files')
 @login_required
@@ -1467,7 +1467,7 @@ def api_all_files():
         return jsonify({'error': str(e)}), 500
 
 # =========================================
-# 🔍 API: LISTE DU RÉPERTOIRE COURANT (pour le rafraîchissement dynamique)
+# API: CURRENT DIRECTORY LISTING (for dynamic refresh)
 # =========================================
 @app.route('/api/directory_listing')
 @app.route('/api/directory_listing/<path:current_path>')
@@ -1538,7 +1538,7 @@ def api_directory_listing(current_path=''):
             else:
                 return f"{size_bytes / (1024 * 1024 * 1024):.1f} GB"
 
-        # Créer une liste de fichiers avec leurs informations
+        # Create file list with their information
         files_with_sizes = []
         for file in file_list:
             size_bytes = file_sizes.get(file, 0)
@@ -1548,7 +1548,7 @@ def api_directory_listing(current_path=''):
                 'size_bytes': size_bytes
             })
 
-        # Récupérer les derniers logs d'upload
+        # Get latest upload logs
         logger = get_activity_logger()
         all_logs = logger.get_user_logs(username, limit=50)
         upload_logs = [log for log in all_logs if log.get('action') == 'FILE_UPLOAD' and log.get('status') == 'SUCCESS']
@@ -1564,7 +1564,7 @@ def api_directory_listing(current_path=''):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # =========================================
-# 🗂️ VERSIONS: LISTE, TÉLÉCHARGEMENT, RESTAURATION
+# VERSIONS: LIST, DOWNLOAD, RESTORATION
 # =========================================
 @app.route('/versions')
 @app.route('/versions/<path:current_path>')
@@ -1606,7 +1606,7 @@ def versions_page(current_path=''):
             folder_list = sorted(list(folders))
             file_list = sorted(files)
 
-            # Récupérer les versions pour chaque fichier du niveau courant
+            # Get versions for each file at current level
             versions_map = {}
             for file in file_list:
                 full_path = (current_path + '/' + file if current_path else file)
@@ -1653,7 +1653,7 @@ def versions_page(current_path=''):
 def download_version(filepath, version):
     username = session.get('username')
 
-    # Vérifier l'accès selon le niveau de sécurité
+    # Check access based on security level
     can_access, access_message, device_fp = check_security_access(username)
     if not can_access:
         return render_template('access_denied.html',
@@ -1661,7 +1661,7 @@ def download_version(filepath, version):
                              username=username,
                              security_level=get_security_manager().get_user_security_level(username))
 
-    # Vérifier le mode de sécurité
+    # Check security mode
     security_mgr = get_security_manager()
     security_level = security_mgr.get_user_security_level(username)
 
@@ -1824,7 +1824,7 @@ def restore_version():
         return redirect(url_for('versions_page') + f'?message=Erreur: {e}')
 
 # =========================================
-# 🗑️ DELETE (admin seulement)
+# DELETE (admin only)
 # =========================================
 @app.route('/delete_version', methods=['POST'])
 @login_required
@@ -1935,7 +1935,7 @@ def delete_folder_route():
         return redirect(url_for('restore_page') + f'?message=Erreur: {e}')
 
 # =========================================
-# 📦 DOWNLOAD
+# DOWNLOAD
 # =========================================
 @app.route('/download/<path:filepath>')
 @login_required
@@ -1943,7 +1943,7 @@ def download_file(filepath):
     username = session.get('username')
     is_admin_user = (username == app.config['ADMIN_USERNAME'])
 
-    # Vérifier l'accès selon le niveau de sécurité
+    # Check access based on security level
     can_access, access_message, device_fp = check_security_access(username)
 
     if not can_access:
@@ -1958,7 +1958,7 @@ def download_file(filepath):
     if is_admin_user and '/' in filepath:
         # L'admin browse les fichiers d'un autre user
         file_owner = filepath.split('/')[0]
-        # Vérifier si ce n'est pas un de ses propres fichiers
+        # Check if this is not one of their own files
         if file_owner != username:
             # L'admin ne peut pas télécharger les fichiers des autres users
             # (il n'a pas leurs clés privées)
@@ -1969,7 +1969,7 @@ def download_file(filepath):
                 </script>
             """
 
-    # Vérifier le mode de sécurité
+    # Check security mode
     security_mgr = get_security_manager()
     security_level = security_mgr.get_user_security_level(username)
 
@@ -2081,7 +2081,7 @@ def download_file(filepath):
         return f"<h1>Erreur</h1><p>{e}</p>"
 
 # =========================================
-# 🔍 API DE RECHERCHE GLOBALE
+# GLOBAL SEARCH API
 # =========================================
 @app.route('/api/search')
 @login_required
@@ -2138,14 +2138,14 @@ def api_search():
         return jsonify({'error': str(e)}), 500
 
 # =========================================
-# 👤 ADMINISTRATION LDAP
+# LDAP ADMINISTRATION
 # =========================================
 def is_admin():
     """Vérifie si l'utilisateur connecté est admin."""
     return session.get('username') == app.config['ADMIN_USERNAME']
 
 # =========================================
-# 🔐 HELPERS POUR LA SÉCURITÉ
+# SECURITY HELPERS
 # =========================================
 def get_device_fingerprint():
     """
@@ -2188,7 +2188,7 @@ def admin_users():
     if not is_admin():
         return "Accès refusé - Admin uniquement", 403
 
-    # Récupérer la liste des utilisateurs LDAP
+    # Get LDAP user list
     users = []
     try:
         host = app.config['LDAP_HOST']
@@ -2252,7 +2252,7 @@ def admin_add_user():
         server = Server(host, port=port, use_ssl=use_ssl, get_info=ALL)
         conn = Connection(server, bind_dn, bind_pwd, auto_bind=True)
 
-        # Créer le DN pour le nouvel utilisateur
+        # Create DN for new user
         new_user_dn = f"uid={uid},{user_dn},{base_dn}"
 
         # Attributs de l'utilisateur
@@ -2328,7 +2328,7 @@ def admin_delete_user():
         return jsonify({'error': str(e)}), 500
 
 # =========================================
-# 🔐 ADMINISTRATION DE LA SÉCURITÉ
+# SECURITY ADMINISTRATION
 # =========================================
 @app.route('/admin/security', methods=['GET'])
 @login_required
@@ -2337,7 +2337,7 @@ def admin_security():
     username = session.get('username')
     security_mgr = get_security_manager()
 
-    # ✅ Récupérer le mode de sécurité GLOBAL (pas celui de l'utilisateur)
+    # Get GLOBAL security mode (not user's mode)
     import sys
     parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if parent_dir not in sys.path:
@@ -2347,7 +2347,7 @@ def admin_security():
     global_mode = get_current_mode()
     current_security_level = 'maximum' if global_mode == 'maximum' else 'standard'
 
-    # Récupérer les appareils enregistrés
+    # Get registered devices
     devices = security_mgr.get_user_devices(username)
 
     # Statistiques globales (pour les admins)
@@ -2384,7 +2384,7 @@ def set_security_level():
     """Définit le niveau de sécurité GLOBAL pour TOUS les utilisateurs (admin uniquement)"""
     username = session.get('username')
 
-    # Vérifier que c'est l'admin
+    # Check that it's the admin
     if username != app.config['ADMIN_USERNAME']:
         return redirect(url_for('admin_security', message='Accès réservé à l\'administrateur'))
 
@@ -2396,7 +2396,7 @@ def set_security_level():
     security_mgr = get_security_manager()
     old_level = security_mgr.get_user_security_level(username)
 
-    # ✅ IMPORTANT: Mettre à jour le mode global dans .env
+    # IMPORTANT: Update global mode in .env
     import sys
     parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     if parent_dir not in sys.path:
@@ -2408,7 +2408,7 @@ def set_security_level():
     set_key('.env', 'SECURITY_MODE', new_mode)
     print(f"[SECURITY] Mode global changé: {get_current_mode()} → {new_mode}")
 
-    # ✅ Mettre à jour TOUS les utilisateurs existants
+    # Update ALL existing users
     updated_users = []
 
     # 1. Utilisateurs qui ont déjà un niveau de sécurité configuré
@@ -2444,7 +2444,7 @@ def set_security_level():
 
                 privkey_path = os.path.join(user_path, 'private_key.pem')
                 if os.path.exists(privkey_path):
-                    # Créer une sauvegarde (pour retour en mode standard)
+                    # Create backup (for return to standard mode)
                     backup_path = privkey_path + '.server_backup'
 
                     # Si un backup existe déjà, ne pas l'écraser (garder la clé originale)
@@ -2479,7 +2479,7 @@ def set_security_level():
                 privkey_path = os.path.join(user_path, 'private_key.pem')
                 backup_path = privkey_path + '.server_backup'
 
-                # Si la clé n'existe pas déjà sur le serveur
+                # If key doesn't already exist on server
                 if not os.path.exists(privkey_path):
                     # Restaurer depuis le backup serveur
                     if os.path.exists(backup_path):
@@ -2563,7 +2563,7 @@ def register_device():
     username = session.get('username')
     security_mgr = get_security_manager()
 
-    # Récupérer le fingerprint depuis le formulaire
+    # Get fingerprint from form
     device_fp = request.form.get('device_fingerprint') or get_device_fingerprint()
 
     device_info = {
@@ -2639,7 +2639,7 @@ def clear_all_logs():
         return redirect(url_for('admin_logs') + '?message=Erreur lors de l\'effacement des logs.')
 
 # =========================================
-# 🔐 CLIENT-SIDE DECRYPTION (Mode Maximum)
+# CLIENT-SIDE DECRYPTION (Maximum Mode)
 # =========================================
 @app.route('/client-decrypt/<path:filepath>')
 @login_required
@@ -2665,7 +2665,7 @@ def get_encrypted_file(filepath):
     """
     username = session.get('username')
 
-    # Vérifier l'accès
+    # Check access
     can_access, access_message, device_fp = check_security_access(username)
     if not can_access:
         return jsonify({'success': False, 'error': access_message}), 403
@@ -2729,7 +2729,7 @@ def get_encrypted_file(filepath):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # =========================================
-# 🔐 CLIENT DECRYPT VERSION
+# CLIENT DECRYPT VERSION
 # =========================================
 @app.route('/client-decrypt-version/<path:filepath>/<version>')
 @login_required
@@ -2757,7 +2757,7 @@ def get_encrypted_version(filepath, version):
     """
     username = session.get('username')
 
-    # Vérifier l'accès
+    # Check access
     can_access, access_message, device_fp = check_security_access(username)
     if not can_access:
         return jsonify({'success': False, 'error': access_message}), 403
@@ -2823,7 +2823,7 @@ def get_encrypted_version(filepath, version):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # =========================================
-# 📦 DOWNLOAD FOLDER (ZIP)
+# DOWNLOAD FOLDER (ZIP)
 # =========================================
 @app.route('/download_folder/<path:folderpath>')
 @login_required
@@ -2831,7 +2831,7 @@ def download_folder(folderpath):
     """Télécharge un dossier complet sous forme de ZIP"""
     username = session.get('username')
 
-    # Vérifier l'accès selon le niveau de sécurité
+    # Check access based on security level
     can_access, access_message, device_fp = check_security_access(username)
     if not can_access:
         return render_template('access_denied.html',
@@ -2839,13 +2839,13 @@ def download_folder(folderpath):
                              username=username,
                              security_level=get_security_manager().get_user_security_level(username))
 
-    # Vérifier la clé privée
+    # Check private key
     user_privkey_path = os.path.join(USER_KEYS_DIR, username, 'private_key.pem')
     if not os.path.exists(user_privkey_path):
         return redirect(url_for('setup_keys'))
 
     try:
-        # Récupérer la liste des fichiers dans le dossier
+        # Get file list in folder
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((STORAGE_SERVER_IP, STORAGE_SERVER_PORT))
             start_command(s, 'L', username)
@@ -2858,7 +2858,7 @@ def download_folder(folderpath):
         if not folder_files:
             return "<h1>Erreur</h1><p>Dossier vide ou introuvable.</p>"
 
-        # Créer un fichier ZIP temporaire
+        # Create temporary ZIP file
         temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix='.zip')
         temp_zip_path = temp_zip.name
         temp_zip.close()
@@ -2960,7 +2960,7 @@ def download_folder(folderpath):
         return f"<h1>Erreur</h1><p>{e}</p>"
 
 # =========================================
-# 🚀 DÉMARRAGE
+# STARTUP
 # =========================================
 if __name__ == '__main__':
     try:

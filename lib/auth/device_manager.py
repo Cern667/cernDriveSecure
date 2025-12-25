@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Gestionnaire d'appareils autorisés pour le mode Zero-Knowledge
-Permet de gérer les appareils de confiance pour chaque utilisateur
+Device manager for Zero-Knowledge mode
+Manages trusted devices for each user
 """
 
 import os
@@ -10,37 +10,36 @@ import hashlib
 from datetime import datetime
 from typing import List, Dict, Optional
 
-# Fichier de stockage des appareils autorisés
 DEVICES_FILE = '/app/data/authorized_devices.json'
 
 def _ensure_data_dir():
-    """Crée le répertoire data s'il n'existe pas"""
+    """Creates data directory if it doesn't exist"""
     os.makedirs(os.path.dirname(DEVICES_FILE), exist_ok=True)
 
 def _load_devices() -> Dict:
-    """Charge la base de données des appareils"""
+    """Loads the device database"""
     _ensure_data_dir()
     if not os.path.exists(DEVICES_FILE):
         return {}
-    
+
     try:
         with open(DEVICES_FILE, 'r') as f:
             return json.load(f)
     except Exception as e:
-        print(f"⚠️ Erreur chargement devices: {e}")
+        print(f"Warning: Error loading devices: {e}")
         return {}
 
 def _save_devices(devices: Dict):
-    """Sauvegarde la base de données des appareils"""
+    """Saves the device database"""
     _ensure_data_dir()
     try:
         with open(DEVICES_FILE, 'w') as f:
             json.dump(devices, f, indent=2)
     except Exception as e:
-        print(f"❌ Erreur sauvegarde devices: {e}")
+        print(f"Error saving devices: {e}")
 
 def _generate_device_id(username: str, device_fingerprint: str) -> str:
-    """Génère un ID unique pour un appareil"""
+    """Generates a unique ID for a device"""
     data = f"{username}:{device_fingerprint}"
     return hashlib.sha256(data.encode()).hexdigest()[:16]
 
@@ -55,22 +54,24 @@ def register_device(
     authorized_by_device_id: str = None
 ) -> Dict:
     """
-    Enregistre un nouvel appareil pour un utilisateur
-    
+    Registers a new device for a user
+
     Args:
-        username: Nom d'utilisateur
-        device_fingerprint: Empreinte unique de l'appareil
-        device_info: Informations sur l'appareil (nom, navigateur, OS, etc.)
-        encrypted_private_key: Clé privée chiffrée avec le mot de passe (base64)
-        salt: Salt utilisé pour PBKDF2 (base64)
-        iv: IV utilisé pour chiffrement (base64)
-    
+        username: Username
+        device_fingerprint: Unique device fingerprint
+        device_info: Device information (name, browser, OS, etc.)
+        encrypted_private_key: Private key encrypted with password (base64)
+        salt: Salt used for PBKDF2 (base64)
+        iv: IV used for encryption (base64)
+        device_public_key_ed25519: Device signing key (Ed25519)
+        authorized_by_device_id: Device ID that authorized this device (None for first device)
+
     Returns:
-        Dict avec success, device_id, message
+        Dict with success, device_id, message
     """
     devices = _load_devices()
-    
-    # Initialiser l'utilisateur s'il n'existe pas
+
+    # Initialize user if not exists
     if username not in devices:
         devices[username] = {
             "devices": [],
@@ -79,86 +80,86 @@ def register_device(
             "iv": iv,
             "created_at": datetime.utcnow().isoformat()
         }
-    
-    # Vérifier si l'appareil existe déjà
+
+    # Check if device already exists
     device_id = _generate_device_id(username, device_fingerprint)
-    
+
     for device in devices[username]["devices"]:
         if device["device_id"] == device_id:
-            # Appareil déjà enregistré, mise à jour last_used
+            # Device already registered, update last_used
             device["last_used"] = datetime.utcnow().isoformat()
             _save_devices(devices)
             return {
                 "success": True,
                 "device_id": device_id,
-                "message": "Appareil déjà enregistré",
+                "message": "Device already registered",
                 "is_new": False
             }
-    
-    # Nouvel appareil
+
+    # New device
     new_device = {
         "device_id": device_id,
         "fingerprint": device_fingerprint,
-        "device_public_key_ed25519": device_public_key_ed25519,  # Clé signature appareil
+        "device_public_key_ed25519": device_public_key_ed25519,
         "device_name": device_info.get("device_name", "Unknown Device"),
         "user_agent": device_info.get("user_agent", ""),
         "screen_info": device_info.get("screen_info", ""),
         "language": device_info.get("language", ""),
         "status": "authorized" if authorized_by_device_id is None else "authorized",
         "authorized_at": datetime.utcnow().isoformat(),
-        "authorized_by": authorized_by_device_id,  # None = premier appareil, sinon device_id qui a autorisé
+        "authorized_by": authorized_by_device_id,
         "created_at": datetime.utcnow().isoformat(),
         "last_used": datetime.utcnow().isoformat(),
         "revoked": False
     }
-    
+
     devices[username]["devices"].append(new_device)
     _save_devices(devices)
-    
-    print(f"✅ Nouvel appareil enregistré pour {username}: {device_id}")
+
+    print(f"New device registered for {username}: {device_id}")
     return {
         "success": True,
         "device_id": device_id,
-        "message": "Appareil enregistré avec succès",
+        "message": "Device registered successfully",
         "is_new": True
     }
 
 def is_device_authorized(username: str, device_fingerprint: str) -> bool:
     """
-    Vérifie si un appareil est autorisé pour un utilisateur
-    
+    Checks if a device is authorized for a user
+
     Args:
-        username: Nom d'utilisateur
-        device_fingerprint: Empreinte de l'appareil
-    
+        username: Username
+        device_fingerprint: Device fingerprint
+
     Returns:
-        True si autorisé, False sinon
+        True if authorized, False otherwise
     """
     devices = _load_devices()
-    
+
     if username not in devices:
         return False
-    
+
     device_id = _generate_device_id(username, device_fingerprint)
-    
+
     for device in devices[username]["devices"]:
         if device["device_id"] == device_id and not device.get("revoked", False):
-            # Mettre à jour last_used
+            # Update last_used
             device["last_used"] = datetime.utcnow().isoformat()
             _save_devices(devices)
             return True
-    
+
     return False
 
 def get_encrypted_private_key(username: str) -> Optional[Dict]:
     """
-    Récupère la clé privée chiffrée d'un utilisateur
+    Retrieves user's encrypted private key
 
     Args:
-        username: Nom d'utilisateur
+        username: Username
 
     Returns:
-        Dict avec encrypted_key, salt, iv, created_at ou None
+        Dict with encrypted_key, salt, iv, created_at or None
     """
     devices = _load_devices()
 
@@ -175,13 +176,13 @@ def get_encrypted_private_key(username: str) -> Optional[Dict]:
 
 def list_user_devices(username: str) -> List[Dict]:
     """
-    Liste tous les appareils d'un utilisateur
-    
+    Lists all devices for a user
+
     Args:
-        username: Nom d'utilisateur
-    
+        username: Username
+
     Returns:
-        Liste des appareils avec leurs informations
+        List of devices with their information
     """
     devices = _load_devices()
     
@@ -192,56 +193,56 @@ def list_user_devices(username: str) -> List[Dict]:
 
 def revoke_device(username: str, device_id: str) -> Dict:
     """
-    Révoque un appareil
-    
+    Revokes a device
+
     Args:
-        username: Nom d'utilisateur
-        device_id: ID de l'appareil à révoquer
-    
+        username: Username
+        device_id: Device ID to revoke
+
     Returns:
-        Dict avec success et message
+        Dict with success and message
     """
     devices = _load_devices()
-    
+
     if username not in devices:
-        return {"success": False, "message": "Utilisateur introuvable"}
-    
+        return {"success": False, "message": "User not found"}
+
     for device in devices[username]["devices"]:
         if device["device_id"] == device_id:
             device["revoked"] = True
             device["revoked_at"] = datetime.utcnow().isoformat()
             _save_devices(devices)
-            
-            print(f"🚫 Appareil révoqué pour {username}: {device_id}")
-            return {"success": True, "message": "Appareil révoqué"}
-    
-    return {"success": False, "message": "Appareil introuvable"}
+
+            print(f"Device revoked for {username}: {device_id}")
+            return {"success": True, "message": "Device revoked"}
+
+    return {"success": False, "message": "Device not found"}
 
 def delete_user_devices(username: str):
     """
-    Supprime tous les appareils d'un utilisateur (lors d'une purge)
-    
+    Deletes all devices for a user (during purge)
+
     Args:
-        username: Nom d'utilisateur
+        username: Username
     """
     devices = _load_devices()
-    
+
     if username in devices:
         del devices[username]
         _save_devices(devices)
-        print(f"🗑️ Appareils supprimés pour {username}")
+        print(f"Devices deleted for {username}")
 
 def get_user_key_type(username: str) -> Optional[str]:
     """
-    Détecte le type de clé publique d'un utilisateur
+    Detects the type of user's public key
 
     Args:
-        username: Nom d'utilisateur
+        username: Username
 
     Returns:
-        'X25519' si clé X25519 (mode maximum)
-        'EC' si clé EC (mode standard)
-        None si pas de clé
+        'X25519' if X25519 key (maximum mode)
+        'EC' if EC key (standard mode)
+        None if no key
     """
     public_key_path = f'/app/user_keys/{username}/public_key.pem'
 
@@ -252,18 +253,17 @@ def get_user_key_type(username: str) -> Optional[str]:
         with open(public_key_path, 'rb') as f:
             key_data = f.read()
 
-        # Les clés X25519 sont très courtes (~44 bytes en base64)
-        # Les clés EC P-256 sont plus longues (~91 bytes en base64)
-        # On peut aussi vérifier le contenu
+        # X25519 keys are very short (~44 bytes in base64)
+        # EC P-256 keys are longer (~91 bytes in base64)
 
         if b'MCowBQYDK2VuAyEA' in key_data or len(key_data) < 100:
-            # Format typique X25519: MCowBQYDK2VuAyEA...
+            # Typical X25519 format: MCowBQYDK2VuAyEA...
             return 'X25519'
         elif b'MFkwEwYHKoZIzj0' in key_data:
-            # Format typique EC: MFkwEwYHKoZIzj0...
+            # Typical EC format: MFkwEwYHKoZIzj0...
             return 'EC'
         else:
-            # Essayer de déterminer par la taille
+            # Try to determine by size
             import base64
             lines = key_data.decode().strip().split('\n')
             if len(lines) >= 3:
@@ -273,60 +273,57 @@ def get_user_key_type(username: str) -> Optional[str]:
                 else:
                     return 'EC'
     except Exception as e:
-        print(f"⚠️ Erreur détection type clé pour {username}: {e}")
+        print(f"Warning: Error detecting key type for {username}: {e}")
         return None
 
     return None
 
 def has_registered_key(username: str) -> bool:
     """
-    Vérifie si un utilisateur a déjà enregistré une clé privée chiffrée
+    Checks if a user has already registered an encrypted private key
 
     Args:
-        username: Nom d'utilisateur
+        username: Username
 
     Returns:
-        True si une clé est enregistrée, False sinon
+        True if key is registered, False otherwise
     """
     devices = _load_devices()
     return username in devices and "encrypted_private_key" in devices[username]
 
 def has_compatible_keys(username: str, expected_mode: str) -> bool:
     """
-    Vérifie si l'utilisateur a des clés compatibles avec le mode de sécurité attendu
+    Checks if user has keys compatible with expected security mode
 
     Args:
-        username: Nom d'utilisateur
-        expected_mode: 'maximum' ou 'normal'
+        username: Username
+        expected_mode: 'maximum' or 'normal'
 
     Returns:
-        True si les clés sont compatibles, False sinon
+        True if keys are compatible, False otherwise
     """
     key_type = get_user_key_type(username)
 
     if key_type is None:
         return False
 
-    # Les deux modes acceptent EC (P-256) et X25519
-    # Car Web Crypto API génère P-256 en fallback si X25519 n'est pas supporté
+    # Both modes accept EC (P-256) and X25519
+    # Because Web Crypto API generates P-256 as fallback if X25519 not supported
     return key_type in ['EC', 'X25519']
 
 def purge_all_devices():
-    """Supprime tous les appareils (lors d'un changement de mode de sécurité)"""
+    """Deletes all devices (during security mode change)"""
     _ensure_data_dir()
     if os.path.exists(DEVICES_FILE):
         os.remove(DEVICES_FILE)
-        print("🗑️ Tous les appareils supprimés")
+        print("All devices deleted")
 
-# ============================================================================
-# TESTS
-# ============================================================================
-
+# Tests
 if __name__ == "__main__":
-    print("🧪 Tests du gestionnaire d'appareils\n")
-    
-    # Test 1 : Enregistrement d'un appareil
-    print("1️⃣ Enregistrement d'un appareil...")
+    print("Device manager tests\n")
+
+    # Test 1: Register device
+    print("1. Registering device...")
     result = register_device(
         username="testuser",
         device_fingerprint="abc123def456",
@@ -341,29 +338,29 @@ if __name__ == "__main__":
         iv="base64_iv"
     )
     print(f"   {result}\n")
-    
-    # Test 2 : Vérification autorisation
-    print("2️⃣ Vérification autorisation...")
+
+    # Test 2: Check authorization
+    print("2. Checking authorization...")
     authorized = is_device_authorized("testuser", "abc123def456")
-    print(f"   ✅ Autorisé: {authorized}\n")
-    
-    # Test 3 : Liste des appareils
-    print("3️⃣ Liste des appareils...")
+    print(f"   Authorized: {authorized}\n")
+
+    # Test 3: List devices
+    print("3. Listing devices...")
     devices_list = list_user_devices("testuser")
-    print(f"   📱 {len(devices_list)} appareil(s)\n")
-    
-    # Test 4 : Récupération clé chiffrée
-    print("4️⃣ Récupération clé chiffrée...")
+    print(f"   {len(devices_list)} device(s)\n")
+
+    # Test 4: Retrieve encrypted key
+    print("4. Retrieving encrypted key...")
     key_data = get_encrypted_private_key("testuser")
-    print(f"   🔑 Clé: {key_data['encrypted_private_key'][:20]}...\n")
-    
-    # Test 5 : Révocation
-    print("5️⃣ Révocation d'un appareil...")
+    print(f"   Key: {key_data['encrypted_private_key'][:20]}...\n")
+
+    # Test 5: Revoke device
+    print("5. Revoking device...")
     device_id = devices_list[0]["device_id"]
     revoke_result = revoke_device("testuser", device_id)
     print(f"   {revoke_result}\n")
-    
-    # Nettoyage
-    print("6️⃣ Nettoyage...")
+
+    # Cleanup
+    print("6. Cleanup...")
     purge_all_devices()
-    print("   ✅ Tests terminés\n")
+    print("   Tests completed\n")
