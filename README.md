@@ -2,6 +2,17 @@
 
 A secure, zero-knowledge encrypted NAS system with client-side encryption. Files are encrypted in the browser before upload, ensuring the server never has access to encryption keys or plaintext data.
 
+---
+
+## 📺 Demo
+<p align="center">
+  <video src="https://github.com/user-attachments/assets/0d8faa90-e0ff-482b-aab8-356401fe43bb" width="100%" controls>
+    Your browser does not support the video tag.
+  </video>
+</p>
+
+---
+
 [Français](#francais)
 
 ---
