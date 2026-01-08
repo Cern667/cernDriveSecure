@@ -55,10 +55,11 @@ else
     echo "1) Stop containers (data preserved)"
     echo "2) Standard cleanup (stop + remove volumes)"
     echo "3) Full cleanup (stop + volumes + Docker images)"
-    echo "4) Cancel"
+    echo "4) Force delete images only"
+    echo "5) Cancel"
     echo ""
 
-    read -p "Your choice (1-4): " choice
+    read -p "Your choice (1-5): " choice
 fi
 
 # Détection de la commande Docker Compose
@@ -122,12 +123,16 @@ case $choice in
         echo "Full cleanup (containers + volumes + images)..."
         echo "======================================================================"
 
-        # Stop and remove everything
-        $DOCKER_COMPOSE_CMD down -v
+        # Stop and remove everything including built images (local)
+        $DOCKER_COMPOSE_CMD down -v --rmi local
 
-        # Remove built images
-        echo ""
-        echo "Removing Docker images..."
+        # Extra safety: remove images by project label (works if project name matches folder)
+        PROJECT_NAME=$(basename "$(pwd)")
+        echo "Cleaning up remaining images for project: $PROJECT_NAME..."
+        docker image ls --filter label=com.docker.compose.project=$PROJECT_NAME -q | xargs -r docker rmi -f 2>/dev/null || true
+
+        # Fallback: Remove specific known names
+        echo "Removing known image names..."
         docker rmi nas-client nas-server nas_client nas_server 2>/dev/null || true
 
         # Remove unused images
@@ -141,7 +146,7 @@ case $choice in
         echo "Removed:"
         echo "  - Containers"
         echo "  - Docker volumes"
-        echo "  - Docker images (nas-client, nas-server)"
+        echo "  - Docker images (built locally)"
         echo ""
         echo "INFO: Local data preserved (storage/, user_keys/)"
         echo ""
@@ -150,6 +155,22 @@ case $choice in
         ;;
 
     4)
+        echo ""
+        echo "======================================================================"
+        echo "Force removing NAS images..."
+        echo "======================================================================"
+        
+        # Remove by label
+        PROJECT_NAME=$(basename "$(pwd)")
+        docker image ls --filter label=com.docker.compose.project=$PROJECT_NAME -q | xargs -r docker rmi -f 2>/dev/null || true
+        
+        # Remove by name
+        docker rmi nas-client nas-server nas_client nas_server 2>/dev/null || true
+        
+        echo "✅ Images removed."
+        ;;
+
+    5)
         echo "Cancelled."
         exit 0
         ;;
