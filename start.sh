@@ -27,8 +27,13 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
-    echo "❌ Docker Compose n'est pas installé."
+# Détection de la commande Docker Compose
+if command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE_CMD="docker-compose"
+elif docker compose version &> /dev/null; then
+    DOCKER_COMPOSE_CMD="docker compose"
+else
+    echo "❌ Docker Compose n'est pas installé (ni 'docker-compose' ni 'docker compose')."
     exit 1
 fi
 
@@ -102,13 +107,13 @@ echo ""
 echo "======================================================================"
 echo "🐳 Arrêt des conteneurs existants (si présents)..."
 echo "======================================================================"
-docker-compose down 2>/dev/null || true
+$DOCKER_COMPOSE_CMD down 2>/dev/null || true
 
 echo ""
 echo "======================================================================"
 echo "🏗️  Build et démarrage des conteneurs..."
 echo "======================================================================"
-docker-compose up --build -d
+$DOCKER_COMPOSE_CMD up --build -d
 
 # Attendre que les services démarrent
 echo ""
@@ -120,7 +125,7 @@ echo ""
 echo "======================================================================"
 echo "📊 Statut des conteneurs"
 echo "======================================================================"
-docker-compose ps
+$DOCKER_COMPOSE_CMD ps
 
 echo ""
 echo "======================================================================"
@@ -135,10 +140,10 @@ echo "   Username : $ADMIN_USERNAME"
 echo "   Password : $ADMIN_PASSWORD"
 echo ""
 echo "📋 Commandes utiles :"
-echo "   📝 Voir les logs        : docker-compose logs -f"
-echo "   📝 Logs d'un service    : docker-compose logs -f [ldap|server|client]"
-echo "   📊 Statut des services  : docker-compose ps"
-echo "   🛑 Arrêter/nettoyer     : ./scripts/cleanup.sh"
+echo "   📝 Voir les logs        : $DOCKER_COMPOSE_CMD logs -f"
+echo "   📝 Logs d'un service    : $DOCKER_COMPOSE_CMD logs -f [ldap|server|client]"
+echo "   📊 Statut des services  : $DOCKER_COMPOSE_CMD ps"
+echo "   🛑 Arrêter/nettoyer     : ./cleanup.sh"
 echo ""
 echo "🔧 Services lancés :"
 echo "   ✅ LDAP Server     (port 389)"

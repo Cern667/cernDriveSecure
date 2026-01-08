@@ -17,7 +17,7 @@
 set -e  # Exit on error
 
 # Navigate to project directory
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")"
 
 echo "======================================================================"
 echo "CernCloud.Nas - Cleanup Script"
