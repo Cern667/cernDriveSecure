@@ -61,19 +61,29 @@ else
     read -p "Your choice (1-4): " choice
 fi
 
+# Détection de la commande Docker Compose
+if command -v docker-compose &> /dev/null; then
+    DOCKER_COMPOSE_CMD="docker-compose"
+elif docker compose version &> /dev/null; then
+    DOCKER_COMPOSE_CMD="docker compose"
+else
+    echo "❌ Docker Compose n'est pas installé (ni 'docker-compose' ni 'docker compose')."
+    exit 1
+fi
+
 case $choice in
     1)
         echo ""
         echo "======================================================================"
         echo "Stopping containers..."
         echo "======================================================================"
-        docker-compose down
+        $DOCKER_COMPOSE_CMD down
 
         echo ""
         echo "SUCCESS: Containers stopped."
         echo "INFO: Volumes preserved (data safe)"
         echo ""
-        echo "To restart: ./start.sh or docker-compose up -d"
+        echo "To restart: ./start.sh or $DOCKER_COMPOSE_CMD up -d"
         ;;
 
     2)
@@ -89,13 +99,13 @@ case $choice in
         echo "======================================================================"
         echo "Standard cleanup (containers + volumes)..."
         echo "======================================================================"
-        docker-compose down -v
+        $DOCKER_COMPOSE_CMD down -v
 
         echo ""
         echo "SUCCESS: Containers and volumes removed."
         echo "INFO: Local data preserved (storage/, user_keys/)"
         echo ""
-        echo "To restart: ./start.sh or docker-compose up -d"
+        echo "To restart: ./start.sh or $DOCKER_COMPOSE_CMD up -d"
         ;;
 
     3)
@@ -113,7 +123,7 @@ case $choice in
         echo "======================================================================"
 
         # Stop and remove everything
-        docker-compose down -v
+        $DOCKER_COMPOSE_CMD down -v
 
         # Remove built images
         echo ""
@@ -136,7 +146,7 @@ case $choice in
         echo "INFO: Local data preserved (storage/, user_keys/)"
         echo ""
         echo "NOTE: On next startup, images will be rebuilt."
-        echo "To restart: ./start.sh or docker-compose up --build -d"
+        echo "To restart: ./start.sh or $DOCKER_COMPOSE_CMD up --build -d"
         ;;
 
     4)

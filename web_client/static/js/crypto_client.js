@@ -30,37 +30,28 @@ const CONFIG = {
 // ============================================================================
 
 /**
- * Génère une paire de clés X25519 dans le navigateur
+ * Génère une paire de clés P-256 (ECDH) dans le navigateur
+ * Note: Renommé pour garder la compatibilité avec l'appelant, mais utilise P-256
  * @returns {Promise<{privateKey: CryptoKey, publicKey: CryptoKey}>}
  */
 async function generateX25519KeyPair() {
+    console.log("⚠️ Utilisation forcée de P-256 pour compatibilité");
+
     try {
         const keyPair = await window.crypto.subtle.generateKey(
             {
                 name: "ECDH",
-                namedCurve: "X25519", // Équivalent X25519
+                namedCurve: "P-256", // Force P-256
             },
             true, // extractable
             ["deriveKey", "deriveBits"]
         );
 
-        console.log("✅ Paire de clés X25519 générée");
+        console.log("✅ Paire de clés P-256 générée");
         return keyPair;
     } catch (error) {
-        console.error("❌ Erreur génération clés X25519:", error);
-
-        // Fallback sur P-256 si X25519 n'est pas supporté
-        console.warn("⚠️ X25519 non supporté, utilisation de P-256");
-        const keyPair = await window.crypto.subtle.generateKey(
-            {
-                name: "ECDH",
-                namedCurve: "P-256",
-            },
-            true,
-            ["deriveKey", "deriveBits"]
-        );
-
-        return keyPair;
+        console.error("❌ Erreur génération clés P-256:", error);
+        throw error;
     }
 }
 
